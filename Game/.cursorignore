@@ -1,0 +1,40 @@
+# Python virtual environments
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
+
+# IDE related
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+.DS_Store
+Thumbs.db
+.cache/
+*.log
+*.tmp
+
+# Unit tests / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Environment variable files
+.env
+.env.local
+
+# Large binary or data files
+*.db
+*.sqlite3
