@@ -11,7 +11,7 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 pygame.init()
 
 # 设置屏幕大小
-screen_size = (1920, 1080)
+screen_size = (1440, 900)
 screen = pygame.display.set_mode(screen_size)
 
 # 设置窗口标题
@@ -82,21 +82,13 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            # 点击事件处理
             if event.button == 1:  # 左键点击
-                # 检查玩家棋盘点击
-                pos = myChessboard.get_grid_position(event.pos)
-                if pos:
-                    row, col = pos
-                    position = row * 3 + col + 1  # 计算位置序号
-                    print(f"点击了玩家棋盘位置: {row}, {col} (位置序号: {position})")
-                
-                # 检查对手棋盘点击
-                pos = opponentChessboard.get_grid_position(event.pos)
-                if pos:
-                    row, col = pos
-                    position = row * 3 + col + 1  # 计算位置序号
-                    print(f"点击了对手棋盘位置: {row}, {col} (位置序号: {position})")
+                myChessboard.start_drag(event.pos)
+                opponentChessboard.start_drag(event.pos)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:  # 左键释放
+                myChessboard.end_drag(event.pos)
+                opponentChessboard.end_drag(event.pos)
 
     # 填充背景色
     screen.fill(WHITE)

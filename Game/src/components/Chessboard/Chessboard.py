@@ -23,13 +23,14 @@ class Chessboard:
         
         # 初始化棋盘状态 (3x3网格，初始为空)
         self.grid = [[None for _ in range(3)] for _ in range(3)]
+        
+        # 新增属性用于拖动功能
+        self.dragging = False
+        self.dragged_piece = None
+        self.original_position = None
 
     def draw(self):
-        # 绘制棋盘标题
-        font = pygame.font.Font(None, 36)
-        title = font.render("战斗棋盘", True, self.BLACK)
-        title_rect = title.get_rect(center=(self.position[0] + self.size // 2, self.position[1] - 30))
-        self.screen.blit(title, title_rect)
+
         
         # 绘制棋盘背景
         x, y = self.position
@@ -60,7 +61,14 @@ class Chessboard:
                 piece = self.grid[row][col]
                 if piece and isinstance(piece, ChessPiece):
                     piece.draw(self.screen, self.position, self.grid_size)
-    
+
+        # 绘制拖动中的棋子
+        if self.dragging and self.dragged_piece:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            img_x = mouse_x - self.dragged_piece.image.get_width() // 2
+            img_y = mouse_y - self.dragged_piece.image.get_height() // 2
+            self.screen.blit(self.dragged_piece.image, (img_x, img_y))
+
     def place_piece(self, piece, row, col):
         """在指定位置放置棋子"""
         if 0 <= row < 3 and 0 <= col < 3 and self.grid[row][col] is None:
@@ -120,3 +128,37 @@ class Chessboard:
         
         # 调用place_piece方法放置棋子
         return self.place_piece(chess, row, col) 
+
+    def start_drag(self, mouse_pos):
+        """开始拖动棋子"""
+        pos = self.get_grid_position(mouse_pos)
+        if pos:
+            row, col = pos
+            piece = self.grid[row][col]
+            if piece:
+                self.dragging = True
+                self.dragged_piece = piece
+                self.original_position = (row, col)
+                self.grid[row][col] = None
+
+    def end_drag(self, mouse_pos):
+        """结束拖动棋子"""
+        if self.dragging:
+            new_pos = self.get_grid_position(mouse_pos)
+            if new_pos:
+                new_row, new_col = new_pos
+                if self.grid[new_row][new_col]:
+                    # 如果目标位置有棋子，交换位置
+                    old_piece = self.grid[new_row][new_col]
+                    old_piece.set_position(*self.original_position)
+                    self.grid[self.original_position[0]][self.original_position[1]] = old_piece
+                self.dragged_piece.set_position(new_row, new_col)
+                self.grid[new_row][new_col] = self.dragged_piece
+            else:
+                # 如果拖动到棋盘外，放回原位
+                self.dragged_piece.set_position(*self.original_position)
+                self.grid[self.original_position[0]][self.original_position[1]] = self.dragged_piece
+
+            self.dragging = False
+            self.dragged_piece = None
+            self.original_position = None
