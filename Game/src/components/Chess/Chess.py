@@ -26,6 +26,7 @@ class Chess:
         self.lifepoint = lifepoint
         self.job = job
         self.isFusion = is_fusion
+        self.isAttack = 0  # 新增属性，标记棋子是否已经攻击过
         
         # 图片相关属性
         self.image = None
@@ -111,4 +112,16 @@ class Chess:
     def __str__(self):
         """返回棋子的字符串表示"""
         fusion_status = "融合棋子" if self.isFusion else "普通棋子"
-        return f"{self.job} - 攻击力:{self.attack} 生命值:{self.lifepoint} ({fusion_status})" 
+        return f"{self.job} - 攻击力:{self.attack} 生命值:{self.lifepoint} ({fusion_status})"
+
+    def reset_attack_status(self):
+        """重置攻击状态"""
+        self.isAttack = 0
+
+    def mark_as_attacked(self):
+        """标记为已攻击"""
+        self.isAttack = 1
+
+    def can_attack(self):
+        """检查是否可以攻击"""
+        return self.isAttack == 0 

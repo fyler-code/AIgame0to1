@@ -76,6 +76,13 @@ print(f"敌方弓箭手: {enemy_archer}")
 
 # 游戏主循环
 running = True
+clock = pygame.time.Clock()
+
+# 回合结束按钮
+button_font = pygame.font.Font(None, 36)
+button_text = button_font.render("Time End", True, (0, 0, 0))
+button_rect = button_text.get_rect(center=(screen_size[0] // 2, screen_size[1] - 50))
+
 while running:
     # 事件处理
     for event in pygame.event.get():
@@ -83,8 +90,31 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # 左键点击
+                pos = myChessboard.get_grid_position(event.pos)
+                if pos:
+                    row, col = pos
+                    piece = myChessboard.grid[row][col]
+                    if piece and piece.can_attack():
+                        # 执行攻击
+                        myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
+                        piece.mark_as_attacked()
                 myChessboard.start_drag(event.pos)
                 opponentChessboard.start_drag(event.pos)
+            # 检查是否点击了回合结束按钮
+            if button_rect.collidepoint(event.pos):
+                # 敌方棋子攻击逻辑
+                for row in range(3):
+                    for col in range(3):
+                        enemy_piece = opponentChessboard.grid[row][col]
+                        if enemy_piece and enemy_piece.can_attack():
+                            opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
+                            enemy_piece.mark_as_attacked()
+                # 重置我方棋子的攻击状态
+                for row in range(3):
+                    for col in range(3):
+                        piece = myChessboard.grid[row][col]
+                        if piece:
+                            piece.reset_attack_status()
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:  # 左键释放
                 myChessboard.end_drag(event.pos)
@@ -97,8 +127,15 @@ while running:
     myChessboard.draw()
     opponentChessboard.draw()
 
+    # 绘制回合结束按钮
+    pygame.draw.rect(screen, (200, 200, 200), button_rect.inflate(20, 10))
+    screen.blit(button_text, button_rect)
+
     # 更新显示
     pygame.display.flip()
+    
+    # 控制帧率
+    clock.tick(60)
 
 # 清理并退出
 pygame.quit()

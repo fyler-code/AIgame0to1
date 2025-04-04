@@ -30,8 +30,6 @@ class Chessboard:
         self.original_position = None
 
     def draw(self):
-
-        
         # 绘制棋盘背景
         x, y = self.position
         pygame.draw.rect(self.screen, self.GRAY, pygame.Rect(x, y, self.size, self.size))
@@ -61,7 +59,7 @@ class Chessboard:
                 piece = self.grid[row][col]
                 if piece and isinstance(piece, ChessPiece):
                     piece.draw(self.screen, self.position, self.grid_size)
-
+        
         # 绘制拖动中的棋子
         if self.dragging and self.dragged_piece:
             mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -127,7 +125,7 @@ class Chessboard:
         col = position % 3
         
         # 调用place_piece方法放置棋子
-        return self.place_piece(chess, row, col) 
+        return self.place_piece(chess, row, col)
 
     def start_drag(self, mouse_pos):
         """开始拖动棋子"""
@@ -162,3 +160,30 @@ class Chessboard:
             self.dragging = False
             self.dragged_piece = None
             self.original_position = None
+
+    def attack_opponent(self, opponent_board, row, col, is_player=True):
+        """攻击对手棋盘上同一列的第一个棋子，方向根据攻击方决定"""
+        attacker = self.grid[row][col]
+        if not attacker or not isinstance(attacker, ChessPiece):
+            return
+
+        # 根据攻击方决定检查方向
+        if is_player:
+            # 玩家棋子从下往上检查
+            target_rows = range(2, -1, -1)
+        else:
+            # 敌方棋子从上往下检查
+            target_rows = range(3)
+
+        # 在对手棋盘上寻找同一列的第一个棋子
+        for target_row in target_rows:
+            target_piece = opponent_board.grid[target_row][col]
+            if target_piece and isinstance(target_piece, ChessPiece):
+                # 计算伤害
+                target_piece.take_damage(attacker.get_attack())
+                print(f"{attacker.get_job()} 攻击了 {target_piece.get_job()}，造成 {attacker.get_attack()} 点伤害")
+                # 检查目标棋子是否死亡
+                if target_piece.get_lifepoint() <= 0:
+                    opponent_board.remove_piece(target_row, col)
+                    print(f"{target_piece.get_job()} 被击败")
+                break
