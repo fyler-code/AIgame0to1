@@ -3,6 +3,7 @@ import sys
 import os
 from src.components.Chessboard.Chessboard import Chessboard
 from src.components.Chess.ChessPiece import ChessPiece
+from src.components.BackPack.BackPack import BackPack
 
 # 获取项目根目录路径
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -34,11 +35,18 @@ myChessboard.position = (center_x, screen_size[1] - int(400 * scale_factor))  # 
 opponentChessboard = Chessboard(screen)
 opponentChessboard.position = (center_x, int(50 * scale_factor))
 
+# 初始化背包（位于玩家棋盘右侧两个格子的距离）
+backpack = BackPack(screen, myChessboard)
+
 # 显示棋盘位置信息
 print(f"屏幕尺寸: {screen_size}")
 print(f"我的棋盘位置: {myChessboard.position}")
 print(f"对手棋盘位置: {opponentChessboard.position}")
+print(f"背包位置: {backpack.position}")
 print(f"棋盘大小: {myChessboard.size}x{myChessboard.size}")
+print(f"背包大小: {backpack.width}x{backpack.height}")
+print(f"背包格子大小: {backpack.grid_size}")
+print(f"棋盘格子大小: {myChessboard.grid_size}")
 print(f"缩放比例: {scale_factor}")
 
 # 创建示例棋子 - 玩家
@@ -65,6 +73,18 @@ opponentChessboard.setChess(enemy_mage, 5)     # 第五格 (中间)
 opponentChessboard.setChess(enemy_fusion, 9)   # 第九格 (右下角)
 opponentChessboard.setChess(enemy_archer, 4)   # 第四格 (第二排第一个)
 
+# 创建一些额外的棋子放入背包
+backpack_pieces = [
+    ChessPiece(attack=6, lifepoint=8, job="背包战士1", is_fusion=False, color=(255, 100, 0)),
+    ChessPiece(attack=7, lifepoint=7, job="背包法师1", is_fusion=False, color=(100, 100, 255)),
+    ChessPiece(attack=9, lifepoint=4, job="背包弓手1", is_fusion=False, color=(0, 200, 100)),
+    ChessPiece(attack=15, lifepoint=15, job="背包融合战士", is_fusion=True, color=(255, 150, 150))
+]
+
+# 将棋子添加到背包
+for piece in backpack_pieces:
+    backpack.add_piece(piece)
+
 # 打印棋子状态信息
 print("\n玩家棋子状态:")
 print(f"战士: {warrior}")
@@ -78,9 +98,15 @@ print(f"敌方法师: {enemy_mage}")
 print(f"敌方融合战士: {enemy_fusion}")
 print(f"敌方弓箭手: {enemy_archer}")
 
+print(f"\n背包中的棋子数量: {backpack.count_pieces()}")
+
 # 游戏主循环
 running = True
 clock = pygame.time.Clock()
+
+# 拖拽状态变量
+currently_dragging = None  # 可以是 "my_chessboard", "opponent_chessboard", "backpack" 或 None
+dragged_piece = None
 
 # 回合结束按钮
 button_font = pygame.font.Font(None, int(36 * scale_factor))
@@ -107,8 +133,27 @@ while running:
                     # 不管点击了菜单上的什么，都阻止下面的拖拽逻辑
                     continue
                 
-                myChessboard.start_drag(event.pos)
-                opponentChessboard.start_drag(event.pos)
+                # 检查是否在背包中开始拖拽
+                if backpack.start_drag(event.pos):
+                    currently_dragging = "backpack"
+                    dragged_piece = backpack.dragged_piece
+                    continue
+                
+                # 尝试从我方棋盘拖拽
+                if not currently_dragging:
+                    myChessboard.start_drag(event.pos)
+                    if myChessboard.dragging:
+                        currently_dragging = "my_chessboard"
+                        dragged_piece = myChessboard.dragged_piece
+                        continue
+                
+                # 尝试从对手棋盘拖拽（通常不应该允许，但保留代码以便将来可能的使用）
+                if not currently_dragging:
+                    opponentChessboard.start_drag(event.pos)
+                    if opponentChessboard.dragging:
+                        currently_dragging = "opponent_chessboard"
+                        dragged_piece = opponentChessboard.dragged_piece
+                        continue
                 
                 # 检查是否点击了回合结束按钮
                 if button_rect.collidepoint(event.pos):
@@ -138,15 +183,81 @@ while running:
                 
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:  # 左键释放
-                myChessboard.end_drag(event.pos)
-                opponentChessboard.end_drag(event.pos)
+                if currently_dragging == "backpack":
+                    # 检查是否释放在我方棋盘上
+                    my_pos = myChessboard.get_grid_position(event.pos)
+                    if my_pos:
+                        row, col = my_pos
+                        if myChessboard.grid[row][col] is None:
+                            # 从背包移动到我方棋盘
+                            myChessboard.grid[row][col] = dragged_piece
+                            dragged_piece.set_position(row, col)
+                            backpack.dragged_piece = None
+                            backpack.dragging = False
+                            currently_dragging = None
+                            dragged_piece = None
+                            continue
+                    
+                    # 如果不是放在我方棋盘上，尝试放回背包
+                    backpack.end_drag(event.pos)
+                    currently_dragging = None
+                    dragged_piece = None
+                
+                elif currently_dragging == "my_chessboard":
+                    # 检查是否释放在背包上
+                    bp_pos = backpack.get_grid_position(event.pos)
+                    if bp_pos:
+                        row, col = bp_pos
+                        if backpack.grid[row][col] is None:
+                            # 从我方棋盘移动到背包
+                            backpack.grid[row][col] = dragged_piece
+                            dragged_piece.set_position(row, col)
+                            myChessboard.dragged_piece = None
+                            myChessboard.dragging = False
+                            currently_dragging = None
+                            dragged_piece = None
+                            continue
+                    
+                    # 如果不是放在背包上，结束拖拽
+                    myChessboard.end_drag(event.pos)
+                    currently_dragging = None
+                    dragged_piece = None
+                
+                elif currently_dragging == "opponent_chessboard":
+                    # 结束对手棋盘的拖拽（通常不允许）
+                    opponentChessboard.end_drag(event.pos)
+                    currently_dragging = None
+                    dragged_piece = None
 
     # 填充背景色
     screen.fill(WHITE)
 
-    # 绘制两个棋盘
+    # 绘制两个棋盘和背包
     myChessboard.draw()
     opponentChessboard.draw()
+    backpack.draw()
+    
+    # 绘制当前拖拽的棋子（如果有）
+    if dragged_piece:
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        # 假设棋子图片大小为80x80像素
+        piece_size = int(80 * scale_factor)
+        img_x = mouse_x - piece_size // 2
+        img_y = mouse_y - piece_size // 2
+        
+        # 获取棋子图片
+        if dragged_piece.image:
+            scaled_image = pygame.transform.scale(dragged_piece.image, (piece_size, piece_size))
+            screen.blit(scaled_image, (img_x, img_y))
+        else:
+            # 如果没有图片，绘制一个圆形代表棋子
+            pygame.draw.circle(screen, dragged_piece.color, (mouse_x, mouse_y), int(40 * scale_factor))
+            # 绘制棋子属性
+            font = pygame.font.Font(None, int(24 * scale_factor))
+            attack_text = font.render(str(dragged_piece.attack), True, (255, 255, 255))
+            lifepoint_text = font.render(str(dragged_piece.lifepoint), True, (255, 255, 255))
+            screen.blit(attack_text, (mouse_x - int(15 * scale_factor), mouse_y - int(10 * scale_factor)))
+            screen.blit(lifepoint_text, (mouse_x + int(5 * scale_factor), mouse_y - int(10 * scale_factor)))
 
     # 绘制回合结束按钮
     pygame.draw.rect(screen, (200, 200, 200), button_rect.inflate(int(20 * scale_factor), int(10 * scale_factor)))
