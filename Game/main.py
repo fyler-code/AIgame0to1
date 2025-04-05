@@ -14,6 +14,9 @@ pygame.init()
 screen_size = (1440, 900)
 screen = pygame.display.set_mode(screen_size)
 
+# 计算缩放比例（基于参考分辨率1920*1200）
+scale_factor = min(screen_size[0] / 1920, screen_size[1] / 1200)
+
 # 设置窗口标题
 pygame.display.set_caption("Card Game")
 
@@ -21,21 +24,22 @@ pygame.display.set_caption("Card Game")
 WHITE = (255, 255, 255)
 
 # 计算棋盘横向居中位置
-center_x = (screen_size[0] - 600) // 2
+center_x = (screen_size[0] - int(300 * scale_factor)) // 2
 
 # 初始化玩家棋盘（位于屏幕底部边框）
 myChessboard = Chessboard(screen)
-myChessboard.position = (center_x, screen_size[1] - 400)  # 将y坐标调整到屏幕高度减去棋盘高度的位置
+myChessboard.position = (center_x, screen_size[1] - int(400 * scale_factor))  # 将y坐标调整到屏幕高度减去棋盘高度的位置
 
 # 初始化对手棋盘（位于屏幕上方）
 opponentChessboard = Chessboard(screen)
-opponentChessboard.position = (center_x, 50)
+opponentChessboard.position = (center_x, int(50 * scale_factor))
 
 # 显示棋盘位置信息
 print(f"屏幕尺寸: {screen_size}")
 print(f"我的棋盘位置: {myChessboard.position}")
 print(f"对手棋盘位置: {opponentChessboard.position}")
 print(f"棋盘大小: {myChessboard.size}x{myChessboard.size}")
+print(f"缩放比例: {scale_factor}")
 
 # 创建示例棋子 - 玩家
 warrior = ChessPiece(attack=5, lifepoint=10, job="战士", is_fusion=False, color=(255, 0, 0))
@@ -79,9 +83,9 @@ running = True
 clock = pygame.time.Clock()
 
 # 回合结束按钮
-button_font = pygame.font.Font(None, 36)
+button_font = pygame.font.Font(None, int(36 * scale_factor))
 button_text = button_font.render("Time End", True, (0, 0, 0))
-button_rect = button_text.get_rect(center=(screen_size[0] // 2, screen_size[1] - 50))
+button_rect = button_text.get_rect(center=(screen_size[0] // 2, screen_size[1] - int(50 * scale_factor)))
 
 while running:
     # 事件处理
@@ -90,31 +94,48 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # 左键点击
+                # 处理菜单点击
+                if myChessboard.show_menu:
+                    if myChessboard.handle_menu_click(event.pos):
+                        # 选择了攻击选项
+                        row, col = myChessboard.menu_target
+                        piece = myChessboard.grid[row][col]
+                        if piece and piece.can_attack():
+                            myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
+                            piece.mark_as_attacked()
+                        myChessboard.show_menu = False
+                    # 不管点击了菜单上的什么，都阻止下面的拖拽逻辑
+                    continue
+                
+                myChessboard.start_drag(event.pos)
+                opponentChessboard.start_drag(event.pos)
+                
+                # 检查是否点击了回合结束按钮
+                if button_rect.collidepoint(event.pos):
+                    # 敌方棋子攻击逻辑
+                    for row in range(3):
+                        for col in range(3):
+                            enemy_piece = opponentChessboard.grid[row][col]
+                            if enemy_piece and enemy_piece.can_attack():
+                                opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
+                                enemy_piece.mark_as_attacked()
+                    # 重置我方棋子的攻击状态
+                    for row in range(3):
+                        for col in range(3):
+                            piece = myChessboard.grid[row][col]
+                            if piece:
+                                piece.reset_attack_status()
+            
+            elif event.button == 3:  # 右键点击
+                # 检查玩家棋盘上的点击
                 pos = myChessboard.get_grid_position(event.pos)
                 if pos:
                     row, col = pos
                     piece = myChessboard.grid[row][col]
-                    if piece and piece.can_attack():
-                        # 执行攻击
-                        myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
-                        piece.mark_as_attacked()
-                myChessboard.start_drag(event.pos)
-                opponentChessboard.start_drag(event.pos)
-            # 检查是否点击了回合结束按钮
-            if button_rect.collidepoint(event.pos):
-                # 敌方棋子攻击逻辑
-                for row in range(3):
-                    for col in range(3):
-                        enemy_piece = opponentChessboard.grid[row][col]
-                        if enemy_piece and enemy_piece.can_attack():
-                            opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
-                            enemy_piece.mark_as_attacked()
-                # 重置我方棋子的攻击状态
-                for row in range(3):
-                    for col in range(3):
-                        piece = myChessboard.grid[row][col]
-                        if piece:
-                            piece.reset_attack_status()
+                    if piece:
+                        # 显示右键菜单
+                        myChessboard.show_context_menu(event.pos, row, col)
+                
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:  # 左键释放
                 myChessboard.end_drag(event.pos)
@@ -128,7 +149,7 @@ while running:
     opponentChessboard.draw()
 
     # 绘制回合结束按钮
-    pygame.draw.rect(screen, (200, 200, 200), button_rect.inflate(20, 10))
+    pygame.draw.rect(screen, (200, 200, 200), button_rect.inflate(int(20 * scale_factor), int(10 * scale_factor)))
     screen.blit(button_text, button_rect)
 
     # 更新显示

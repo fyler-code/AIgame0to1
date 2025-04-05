@@ -29,7 +29,7 @@ class ChessPiece(Chess):
         super().__init__(attack, lifepoint, job, is_fusion, image_path)
         self.position = position  # (row, col)
         self.color = color
-        self.radius = 40  # 棋子绘制半径，仅在图片无法加载时使用
+        self.base_radius = 40  # 基础棋子绘制半径，仅在图片无法加载时使用
         
     def draw(self, screen, board_position, grid_size):
         """
@@ -42,6 +42,13 @@ class ChessPiece(Chess):
         """
         if self.position is None:
             return
+        
+        # 计算屏幕大小
+        screen_width, screen_height = screen.get_size()
+        # 计算缩放比例（基于参考分辨率1920*1200）
+        scale_factor = min(screen_width / 1920, screen_height / 1200)
+        # 计算缩放后的棋子半径
+        radius = int(self.base_radius * scale_factor)
             
         row, col = self.position
         board_x, board_y = board_position
@@ -52,28 +59,32 @@ class ChessPiece(Chess):
         
         # 绘制棋子
         if self.image:
+            # 调整图片大小以适应缩放
+            scaled_size = int(80 * scale_factor)
+            scaled_image = pygame.transform.scale(self.image, (scaled_size, scaled_size))
+            
             # 计算图片左上角位置（使图片居中）
-            img_x = center_x - self.image.get_width() // 2
-            img_y = center_y - self.image.get_height() // 2
+            img_x = center_x - scaled_image.get_width() // 2
+            img_y = center_y - scaled_image.get_height() // 2
             
             # 绘制棋子图片
-            screen.blit(self.image, (img_x, img_y))
+            screen.blit(scaled_image, (img_x, img_y))
         else:
             # 如果图片加载失败，使用圆形代替
-            pygame.draw.circle(screen, self.color, (center_x, center_y), self.radius)
+            pygame.draw.circle(screen, self.color, (center_x, center_y), radius)
         
         # 绘制棋子属性（攻击力和生命值）
-        font = pygame.font.Font(None, 24)
+        font = pygame.font.Font(None, int(24 * scale_factor))
         attack_text = font.render(str(self.attack), True, (255, 255, 255))
         lifepoint_text = font.render(str(self.lifepoint), True, (255, 255, 255))
         
         # 在棋子上显示攻击力和生命值
-        screen.blit(attack_text, (center_x - 15, center_y - 10))
-        screen.blit(lifepoint_text, (center_x + 5, center_y - 10))
+        screen.blit(attack_text, (center_x - int(15 * scale_factor), center_y - int(10 * scale_factor)))
+        screen.blit(lifepoint_text, (center_x + int(5 * scale_factor), center_y - int(10 * scale_factor)))
         
         # 如果是融合棋子，添加特殊标记
         if self.isFusion:
-            pygame.draw.circle(screen, (255, 255, 0), (center_x, center_y - 25), 5)
+            pygame.draw.circle(screen, (255, 255, 0), (center_x, center_y - int(25 * scale_factor)), int(5 * scale_factor))
             
     def set_position(self, row, col):
         """设置棋子在棋盘上的位置"""

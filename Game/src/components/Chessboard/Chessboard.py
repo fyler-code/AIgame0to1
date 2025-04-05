@@ -7,9 +7,13 @@ class Chessboard:
         # 获取屏幕尺寸
         self.screen_width, self.screen_height = screen.get_size()
         
+        # 计算缩放比例（基于参考分辨率1920*1200）
+        self.scale_factor = min(self.screen_width / 1920, self.screen_height / 1200)
+        
         # 棋盘大小
-        self.size = 300  # 整个棋盘的大小
-        self.grid_size = self.size // 3  # 每个格子的大小 (100x100)
+        self.base_size = 300  # 基础棋盘大小（在1920*1200分辨率下）
+        self.size = int(self.base_size * self.scale_factor)  # 根据屏幕大小缩放
+        self.grid_size = self.size // 3  # 每个格子的大小
         
         # 计算棋盘位置 - 屏幕左边
         self.position = (
@@ -28,6 +32,14 @@ class Chessboard:
         self.dragging = False
         self.dragged_piece = None
         self.original_position = None
+        
+        # 右键菜单相关
+        self.show_menu = False
+        self.menu_position = (0, 0)
+        self.menu_options = ["Attck", "Cancel"]
+        self.menu_selected = None
+        self.menu_target = None
+        self.menu_font = pygame.font.Font(None, int(24 * self.scale_factor))  # 菜单字体也缩放
 
     def draw(self):
         # 绘制棋盘背景
@@ -42,7 +54,7 @@ class Chessboard:
                 self.BLACK, 
                 (x + i * self.grid_size, y), 
                 (x + i * self.grid_size, y + self.size), 
-                2
+                max(1, int(2 * self.scale_factor))  # 线宽也缩放，但最小为1
             )
             # 水平线
             pygame.draw.line(
@@ -50,7 +62,7 @@ class Chessboard:
                 self.BLACK, 
                 (x, y + i * self.grid_size), 
                 (x + self.size, y + i * self.grid_size), 
-                2
+                max(1, int(2 * self.scale_factor))  # 线宽也缩放，但最小为1
             )
             
         # 绘制棋子
@@ -66,6 +78,71 @@ class Chessboard:
             img_x = mouse_x - self.dragged_piece.image.get_width() // 2
             img_y = mouse_y - self.dragged_piece.image.get_height() // 2
             self.screen.blit(self.dragged_piece.image, (img_x, img_y))
+            
+        # 绘制右键菜单
+        if self.show_menu:
+            self.draw_menu()
+
+    def draw_menu(self):
+        """绘制右键菜单"""
+        menu_width = int(100 * self.scale_factor)
+        menu_height = int(len(self.menu_options) * 30 * self.scale_factor)
+        menu_x, menu_y = self.menu_position
+        
+        # 绘制菜单背景
+        menu_rect = pygame.Rect(menu_x, menu_y, menu_width, menu_height)
+        pygame.draw.rect(self.screen, (220, 220, 220), menu_rect)
+        pygame.draw.rect(self.screen, (0, 0, 0), menu_rect, max(1, int(2 * self.scale_factor)))
+        
+        # 绘制菜单选项
+        for i, option in enumerate(self.menu_options):
+            option_y = menu_y + int(i * 30 * self.scale_factor)
+            option_rect = pygame.Rect(menu_x, option_y, menu_width, int(30 * self.scale_factor))
+            
+            # 检查鼠标是否悬停在选项上
+            mouse_pos = pygame.mouse.get_pos()
+            if option_rect.collidepoint(mouse_pos):
+                pygame.draw.rect(self.screen, (200, 200, 255), option_rect)
+                self.menu_selected = i
+            
+            # 绘制选项文本
+            text = self.menu_font.render(option, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(menu_x + menu_width // 2, option_y + int(15 * self.scale_factor)))
+            self.screen.blit(text, text_rect)
+
+    def show_context_menu(self, pos, row, col):
+        """显示右键菜单"""
+        if self.grid[row][col] is not None:
+            self.show_menu = True
+            self.menu_position = pos
+            self.menu_target = (row, col)
+        else:
+            self.show_menu = False
+            self.menu_target = None
+
+    def handle_menu_click(self, pos):
+        """处理菜单点击事件"""
+        if not self.show_menu:
+            return False
+            
+        menu_width = int(100 * self.scale_factor)
+        menu_height = int(len(self.menu_options) * 30 * self.scale_factor)
+        menu_x, menu_y = self.menu_position
+        menu_rect = pygame.Rect(menu_x, menu_y, menu_width, menu_height)
+        
+        if not menu_rect.collidepoint(pos):
+            self.show_menu = False
+            return False
+            
+        # 计算点击了哪个选项
+        option_index = int((pos[1] - menu_y) / (30 * self.scale_factor))
+        if 0 <= option_index < len(self.menu_options):
+            if option_index == 0:  # 攻击选项
+                return True
+            else:  # 取消选项
+                self.show_menu = False
+                
+        return False
 
     def place_piece(self, piece, row, col):
         """在指定位置放置棋子"""
@@ -129,6 +206,9 @@ class Chessboard:
 
     def start_drag(self, mouse_pos):
         """开始拖动棋子"""
+        if self.show_menu:
+            return  # 如果菜单正在显示，不执行拖动
+            
         pos = self.get_grid_position(mouse_pos)
         if pos:
             row, col = pos
