@@ -4,6 +4,7 @@ import os
 from src.components.Chessboard.Chessboard import Chessboard
 from src.components.Chess.ChessPiece import ChessPiece
 from src.components.BackPack.BackPack import BackPack
+from src.components.Message.MessageBoard import MessageBoard
 
 # 获取项目根目录路径
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +26,7 @@ pygame.display.set_caption("Card Game")
 WHITE = (255, 255, 255)
 
 # 计算棋盘横向居中位置
-center_x = (screen_size[0] - int(300 * scale_factor)) // 2
+center_x = (screen_size[0] - int(300 * scale_factor)) // 3.4
 
 # 初始化玩家棋盘（位于屏幕底部边框）
 myChessboard = Chessboard(screen)
@@ -35,16 +36,21 @@ myChessboard.position = (center_x, screen_size[1] - int(400 * scale_factor))  # 
 opponentChessboard = Chessboard(screen)
 opponentChessboard.position = (center_x, int(50 * scale_factor))
 
-# 初始化背包（位于玩家棋盘右侧两个格子的距离）
+# 初始化背包（位于玩家棋盘右侧一个格子的距离）
 backpack = BackPack(screen, myChessboard)
+
+# 初始化消息板（位于玩家棋盘左侧一个格子的距离）
+messageBoard = MessageBoard(screen, myChessboard)
 
 # 显示棋盘位置信息
 print(f"屏幕尺寸: {screen_size}")
 print(f"我的棋盘位置: {myChessboard.position}")
 print(f"对手棋盘位置: {opponentChessboard.position}")
 print(f"背包位置: {backpack.position}")
+print(f"消息板位置: {messageBoard.position}")
 print(f"棋盘大小: {myChessboard.size}x{myChessboard.size}")
 print(f"背包大小: {backpack.width}x{backpack.height}")
+print(f"消息板大小: {messageBoard.width}x{messageBoard.height}")
 print(f"背包格子大小: {backpack.grid_size}")
 print(f"棋盘格子大小: {myChessboard.grid_size}")
 print(f"缩放比例: {scale_factor}")
@@ -85,6 +91,11 @@ backpack_pieces = [
 for piece in backpack_pieces:
     backpack.add_piece(piece)
 
+# 添加初始消息
+messageBoard.add_message("游戏开始！准备战斗！")
+messageBoard.add_message("点击棋子右键可以攻击敌人")
+messageBoard.add_message("从背包拖动棋子到棋盘可以部署棋子")
+
 # 打印棋子状态信息
 print("\n玩家棋子状态:")
 print(f"战士: {warrior}")
@@ -99,6 +110,8 @@ print(f"敌方融合战士: {enemy_fusion}")
 print(f"敌方弓箭手: {enemy_archer}")
 
 print(f"\n背包中的棋子数量: {backpack.count_pieces()}")
+print(f"当前金币: {messageBoard.coins}")
+print(f"当前回合: {messageBoard.current_turn}")
 
 # 游戏主循环
 running = True
@@ -129,6 +142,8 @@ while running:
                         if piece and piece.can_attack():
                             myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
                             piece.mark_as_attacked()
+                            # 添加攻击消息
+                            messageBoard.add_message(f"{piece.job}攻击了敌方棋子！")
                         myChessboard.show_menu = False
                     # 不管点击了菜单上的什么，都阻止下面的拖拽逻辑
                     continue
@@ -157,6 +172,12 @@ while running:
                 
                 # 检查是否点击了回合结束按钮
                 if button_rect.collidepoint(event.pos):
+                    # 进入下一回合
+                    messageBoard.next_turn()
+                    # 增加一些金币
+                    messageBoard.update_coins(10)
+                    messageBoard.add_message(f"获得了10金币！当前金币：{messageBoard.coins}")
+                    
                     # 敌方棋子攻击逻辑
                     for row in range(3):
                         for col in range(3):
@@ -164,6 +185,8 @@ while running:
                             if enemy_piece and enemy_piece.can_attack():
                                 opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
                                 enemy_piece.mark_as_attacked()
+                                # 添加被攻击消息
+                                messageBoard.add_message(f"我方棋子被{enemy_piece.job}攻击！")
                     # 重置我方棋子的攻击状态
                     for row in range(3):
                         for col in range(3):
@@ -196,6 +219,8 @@ while running:
                             backpack.dragging = False
                             currently_dragging = None
                             dragged_piece = None
+                            # 添加部署消息
+                            messageBoard.add_message(f"部署了{dragged_piece.job}到棋盘！")
                             continue
                     
                     # 如果不是放在我方棋盘上，尝试放回背包
@@ -216,6 +241,8 @@ while running:
                             myChessboard.dragging = False
                             currently_dragging = None
                             dragged_piece = None
+                            # 添加收回消息
+                            messageBoard.add_message(f"将{dragged_piece.job}收回到背包！")
                             continue
                     
                     # 如果不是放在背包上，结束拖拽
@@ -232,10 +259,11 @@ while running:
     # 填充背景色
     screen.fill(WHITE)
 
-    # 绘制两个棋盘和背包
+    # 绘制两个棋盘、背包和消息板
     myChessboard.draw()
     opponentChessboard.draw()
     backpack.draw()
+    messageBoard.draw()
     
     # 绘制当前拖拽的棋子（如果有）
     if dragged_piece:

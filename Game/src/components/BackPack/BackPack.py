@@ -56,8 +56,8 @@ class BackPack:
         board_x, board_y = chessboard.position
         board_size = chessboard.size
         
-        # 计算背包应该放在的位置：棋盘右侧两个格子的距离
-        gap = chessboard.grid_size * 2  # 两个棋子的宽度
+        # 计算背包应该放在的位置：棋盘右侧一个格子的距离
+        gap = chessboard.grid_size  # 一个棋子的宽度
         self.position = (
             board_x + board_size + gap,  # 棋盘右边 + 间隔
             board_y  # 与棋盘上边缘对齐
@@ -67,7 +67,7 @@ class BackPack:
         """绘制背包"""
         # 绘制背包标题
         font = pygame.font.Font(None, int(36 * self.scale_factor))
-        title = font.render("背包", True, self.BLACK)
+        title = font.render("BackPack", True, self.BLACK)
         title_rect = title.get_rect(center=(self.position[0] + self.width // 2, self.position[1] - int(30 * self.scale_factor)))
         self.screen.blit(title, title_rect)
         
