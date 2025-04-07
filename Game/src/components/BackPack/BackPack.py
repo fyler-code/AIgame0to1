@@ -57,7 +57,7 @@ class BackPack:
         board_size = chessboard.size
         
         # 计算背包应该放在的位置：棋盘右侧两个格子的距离
-        gap = chessboard.grid_size * 2  # 两个棋子的宽度
+        gap = chessboard.grid_size  # 两个棋子的宽度
         self.position = (
             board_x + board_size + gap,  # 棋盘右边 + 间隔
             board_y  # 与棋盘上边缘对齐
