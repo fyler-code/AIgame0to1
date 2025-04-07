@@ -13,7 +13,7 @@ class ChessPiece(Chess):
     """
     具体的棋子类，继承自Chess基类，添加了绘制和位置功能
     """
-    def __init__(self, attack=0, lifepoint=0, job="", is_fusion=False, position=None, color=(255, 0, 0), image_path=None):
+    def __init__(self, attack=0, lifepoint=0, job="", is_fusion=False, position=None, color=(255, 0, 0), image_path=None, ability=""):
         """
         初始化棋子
         
@@ -25,11 +25,14 @@ class ChessPiece(Chess):
             position (tuple): 棋子在棋盘上的位置(row, col)
             color (tuple): 棋子的颜色(R,G,B)
             image_path (str): 棋子图片路径，如果为None则使用默认图片
+            ability (str): 棋子的能力
         """
         super().__init__(attack, lifepoint, job, is_fusion, image_path)
         self.position = position  # (row, col)
         self.color = color
         self.base_radius = 40  # 基础棋子绘制半径，仅在图片无法加载时使用
+        self.ability = ability  # 新增ability属性
+        self.attacked = False  # 是否已经攻击过
         
     def draw(self, screen, board_position, grid_size):
         """

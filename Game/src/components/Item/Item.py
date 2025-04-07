@@ -53,4 +53,18 @@ class Item:
             y += (grid_size - new_size[1]) // 2
             
             # 绘制图片
-            screen.blit(scaled_image, (x, y)) 
+            screen.blit(scaled_image, (x, y))
+    
+    def apply_to_piece(self, piece):
+        """将物品效果应用到棋子上"""
+        if piece:
+            # 更新棋子的属性
+            piece.attack += self.attack
+            piece.lifepoint += self.lifepoint
+            if self.ability:
+                if piece.ability:
+                    piece.ability += f", {self.ability}"
+                else:
+                    piece.ability = self.ability
+            return True
+        return False 

@@ -4,6 +4,7 @@ import os
 from src.components.Chessboard.Chessboard import Chessboard
 from src.components.Chess.ChessPiece import ChessPiece
 from src.components.BackPack.BackPack import BackPack
+from src.components.Item.Item import Item
 
 # 获取项目根目录路径
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -188,17 +189,60 @@ while running:
                     my_pos = myChessboard.get_grid_position(event.pos)
                     if my_pos:
                         row, col = my_pos
-                        if myChessboard.grid[row][col] is None:
-                            # 从背包移动到我方棋盘
+                        piece = myChessboard.grid[row][col]
+                        
+                        # 如果是物品且目标位置有棋子，应用物品效果
+                        if piece and isinstance(dragged_piece, Item):
+                            # 如果是物品，应用到棋子上
+                            if dragged_piece.apply_to_piece(piece):
+                                # 物品使用成功，从背包中移除
+                                backpack.grid[dragged_piece.position[0]][dragged_piece.position[1]] = None
+                                backpack.dragged_piece = None
+                                backpack.dragging = False
+                                currently_dragging = None
+                                dragged_piece = None
+                                continue
+                        # 如果是棋子，处理交换逻辑
+                        elif isinstance(dragged_piece, ChessPiece):
+                            # 获取背包中原始位置
+                            bp_row, bp_col = dragged_piece.position
+                            
+                            # 如果目标位置有棋子，交换位置
+                            if piece:
+                                # 将棋盘上的棋子移动到背包
+                                backpack.grid[bp_row][bp_col] = piece
+                                piece.set_position(bp_row, bp_col)
+                            else:
+                                # 如果目标位置为空，清空背包中的位置
+                                backpack.grid[bp_row][bp_col] = None
+                            
+                            # 将拖拽的棋子放到棋盘上
                             myChessboard.grid[row][col] = dragged_piece
                             dragged_piece.set_position(row, col)
+                            
                             backpack.dragged_piece = None
                             backpack.dragging = False
                             currently_dragging = None
                             dragged_piece = None
                             continue
                     
-                    # 如果不是放在我方棋盘上，尝试放回背包
+                    # 检查是否释放在对手棋盘上
+                    opponent_pos = opponentChessboard.get_grid_position(event.pos)
+                    if opponent_pos:
+                        row, col = opponent_pos
+                        piece = opponentChessboard.grid[row][col]
+                        if piece and isinstance(dragged_piece, Item):
+                            # 如果是物品，应用到棋子上
+                            if dragged_piece.apply_to_piece(piece):
+                                # 物品使用成功，从背包中移除
+                                backpack.grid[dragged_piece.position[0]][dragged_piece.position[1]] = None
+                                backpack.dragged_piece = None
+                                backpack.dragging = False
+                                currently_dragging = None
+                                dragged_piece = None
+                                continue
+                    
+                    # 如果不是放在棋盘上，尝试放回背包
                     backpack.end_drag(event.pos)
                     currently_dragging = None
                     dragged_piece = None
@@ -208,15 +252,29 @@ while running:
                     bp_pos = backpack.get_grid_position(event.pos)
                     if bp_pos:
                         row, col = bp_pos
-                        if backpack.grid[row][col] is None:
-                            # 从我方棋盘移动到背包
-                            backpack.grid[row][col] = dragged_piece
-                            dragged_piece.set_position(row, col)
-                            myChessboard.dragged_piece = None
-                            myChessboard.dragging = False
-                            currently_dragging = None
-                            dragged_piece = None
-                            continue
+                        piece = backpack.grid[row][col]
+                        
+                        # 获取棋盘上原始位置
+                        chess_row, chess_col = dragged_piece.position
+                        
+                        # 如果背包位置有棋子，交换位置
+                        if piece:
+                            # 将背包中的棋子移动到棋盘
+                            myChessboard.grid[chess_row][chess_col] = piece
+                            piece.set_position(chess_row, chess_col)
+                        else:
+                            # 如果背包位置为空，清空棋盘上的位置
+                            myChessboard.grid[chess_row][chess_col] = None
+                        
+                        # 将拖拽的棋子放到背包中
+                        backpack.grid[row][col] = dragged_piece
+                        dragged_piece.set_position(row, col)
+                        
+                        myChessboard.dragged_piece = None
+                        myChessboard.dragging = False
+                        currently_dragging = None
+                        dragged_piece = None
+                        continue
                     
                     # 如果不是放在背包上，结束拖拽
                     myChessboard.end_drag(event.pos)
