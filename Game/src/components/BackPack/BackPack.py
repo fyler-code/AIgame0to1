@@ -1,8 +1,9 @@
 import pygame
 from src.components.Chess.ChessPiece import ChessPiece
+from src.components.Item.Item import Item
 
 class BackPack:
-    """背包类，用于存储玩家收集到的备用棋子"""
+    """背包类，用于存储玩家收集到的备用棋子和物品"""
     
     def __init__(self, screen, player_chessboard=None):
         self.screen = screen
@@ -49,6 +50,21 @@ class BackPack:
         self.dragged_piece = None
         self.original_position = None
         self.drag_origin = "backpack"  # 标记拖拽来源，可以是"backpack"或"chessboard"
+        
+        # 初始化一些可乐物品
+        self.initialize_items()
+    
+    def initialize_items(self):
+        """初始化一些可乐物品"""
+        # 创建不同类型的可乐
+        coke1 = Item(attack=5, lifepoint=10, ability="恢复5点生命值")
+        coke2 = Item(attack=10, lifepoint=20, ability="恢复10点生命值")
+        coke3 = Item(attack=15, lifepoint=30, ability="恢复15点生命值")
+        
+        # 将可乐放入背包
+        self.place_piece(coke1, 0, 0)  # 第一行第一列
+        self.place_piece(coke2, 0, 1)  # 第一行第二列
+        self.place_piece(coke3, 0, 2)  # 第一行第三列
     
     def update_position_relative_to_chessboard(self, chessboard):
         """根据玩家棋盘位置更新背包位置"""
@@ -97,12 +113,15 @@ class BackPack:
                 max(1, int(1 * self.scale_factor))
             )
         
-        # 绘制格子中的棋子
+        # 绘制格子中的棋子和物品
         for row in range(self.rows):
             for col in range(self.cols):
                 piece = self.grid[row][col]
-                if piece and isinstance(piece, ChessPiece):
-                    piece.draw(self.screen, self.position, self.grid_size)
+                if piece:
+                    if isinstance(piece, ChessPiece):
+                        piece.draw(self.screen, self.position, self.grid_size)
+                    elif isinstance(piece, Item):
+                        piece.draw(self.screen, self.position, self.grid_size)
     
     def get_grid_position(self, mouse_pos):
         """根据鼠标位置返回对应的网格坐标"""
@@ -113,8 +132,8 @@ class BackPack:
         if (board_x <= x <= board_x + self.width and 
             board_y <= y <= board_y + self.height):
             # 计算格子坐标
-            row = (y - board_y) // self.grid_size
-            col = (x - board_x) // self.grid_size
+            row = int((y - board_y) // self.grid_size)
+            col = int((x - board_x) // self.grid_size)
             
             # 确保坐标在有效范围内
             if 0 <= row < self.rows and 0 <= col < self.cols:
@@ -193,10 +212,10 @@ class BackPack:
         return False  # 背包已满
     
     def place_piece(self, piece, row, col):
-        """放置棋子到指定位置
+        """放置棋子或物品到指定位置
         
         参数:
-            piece: 要放置的棋子
+            piece: 要放置的棋子或物品
             row: 行索引
             col: 列索引
             

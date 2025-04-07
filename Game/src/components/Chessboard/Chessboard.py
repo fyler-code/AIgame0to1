@@ -173,10 +173,10 @@ class Chessboard:
         if (board_x <= x <= board_x + self.size and 
             board_y <= y <= board_y + self.size):
             # 计算格子坐标
-            row = (y - board_y) // self.grid_size
-            col = (x - board_x) // self.grid_size
+            row = int((y - board_y) // self.grid_size)
+            col = int((x - board_x) // self.grid_size)
             return row, col
-        return None 
+        return None
 
     def setChess(self, chess, position):
         """

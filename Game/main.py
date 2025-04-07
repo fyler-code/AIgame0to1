@@ -25,7 +25,7 @@ pygame.display.set_caption("Card Game")
 WHITE = (255, 255, 255)
 
 # 计算棋盘横向居中位置
-center_x = (screen_size[0] - int(300 * scale_factor)) // 3.5
+center_x = int((screen_size[0] - int(300 * scale_factor)) //4)
 
 # 初始化玩家棋盘（位于屏幕底部边框）
 myChessboard = Chessboard(screen)
