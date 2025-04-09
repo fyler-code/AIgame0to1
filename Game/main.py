@@ -5,6 +5,7 @@ from src.components.Chessboard.Chessboard import Chessboard
 from src.components.Chess.ChessPiece import ChessPiece
 from src.components.BackPack.BackPack import BackPack
 from src.components.Item.Item import Item
+from src.components.RewardBox.RewardBox import RewardBox
 
 # 获取项目根目录路径
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -39,15 +40,32 @@ opponentChessboard.position = (center_x, int(50 * scale_factor))
 # 初始化背包（位于玩家棋盘右侧两个格子的距离）
 backpack = BackPack(screen, myChessboard)
 
-# 显示棋盘位置信息
+# 初始化奖励盒子（位于屏幕中央）
+rewardBox = RewardBox(screen)
+
+# 添加一些示例物品和棋子到奖励盒子
+reward_items = [
+    Item(attack=20, lifepoint=15, ability="增加20点攻击力和15点生命值"),
+    ChessPiece(attack=10, lifepoint=12, job="奖励战士", is_fusion=False, color=(255, 215, 0)),
+    Item(attack=5, lifepoint=30, ability="增加5点攻击力和30点生命值")
+]
+
+# 将物品和棋子添加到奖励盒子
+for item in reward_items:
+    rewardBox.add_item(item)
+
+# 显示棋盘和盒子位置信息
 print(f"屏幕尺寸: {screen_size}")
 print(f"我的棋盘位置: {myChessboard.position}")
 print(f"对手棋盘位置: {opponentChessboard.position}")
 print(f"背包位置: {backpack.position}")
+print(f"奖励盒子位置: {rewardBox.position}")
 print(f"棋盘大小: {myChessboard.size}x{myChessboard.size}")
 print(f"背包大小: {backpack.width}x{backpack.height}")
+print(f"奖励盒子大小: {rewardBox.width}x{rewardBox.height}")
 print(f"背包格子大小: {backpack.grid_size}")
 print(f"棋盘格子大小: {myChessboard.grid_size}")
+print(f"奖励盒子格子大小: {rewardBox.grid_size}")
 print(f"缩放比例: {scale_factor}")
 
 # 创建示例棋子 - 玩家
@@ -134,6 +152,12 @@ while running:
                     # 不管点击了菜单上的什么，都阻止下面的拖拽逻辑
                     continue
                 
+                # 检查是否在奖励盒子中开始拖拽
+                if rewardBox.start_drag(event.pos):
+                    currently_dragging = "reward_box"
+                    dragged_piece = rewardBox.dragged_piece
+                    continue
+                
                 # 检查是否在背包中开始拖拽
                 if backpack.start_drag(event.pos):
                     currently_dragging = "backpack"
@@ -184,7 +208,89 @@ while running:
                 
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:  # 左键释放
-                if currently_dragging == "backpack":
+                if currently_dragging == "reward_box":
+                    # 检查是否释放在我方棋盘上
+                    my_pos = myChessboard.get_grid_position(event.pos)
+                    if my_pos:
+                        row, col = my_pos
+                        piece = myChessboard.grid[row][col]
+                        
+                        # 记录原始位置，避免索引错误
+                        orig_row, orig_col = dragged_piece.position
+                        
+                        # 如果是物品且目标位置有棋子，应用物品效果
+                        if piece and isinstance(dragged_piece, Item):
+                            # 如果是物品，应用到棋子上
+                            if dragged_piece.apply_to_piece(piece):
+                                # 物品使用成功，从奖励盒子中移除
+                                if 0 <= orig_row < rewardBox.rows and 0 <= orig_col < rewardBox.cols:
+                                    rewardBox.grid[orig_row][orig_col] = None
+                                rewardBox.dragged_piece = None
+                                rewardBox.dragging = False
+                                currently_dragging = None
+                                dragged_piece = None
+                                continue
+                        # 如果是棋子且目标位置为空，将棋子放置到棋盘上
+                        elif not piece and isinstance(dragged_piece, ChessPiece):
+                            # 从奖励盒子移动棋子到我方棋盘
+                            myChessboard.grid[row][col] = dragged_piece
+                            dragged_piece.set_position(row, col)
+                            if 0 <= orig_row < rewardBox.rows and 0 <= orig_col < rewardBox.cols:
+                                rewardBox.grid[orig_row][orig_col] = None
+                            rewardBox.dragged_piece = None
+                            rewardBox.dragging = False
+                            currently_dragging = None
+                            dragged_piece = None
+                            continue
+                    
+                    # 检查是否释放在对手棋盘上
+                    opponent_pos = opponentChessboard.get_grid_position(event.pos)
+                    if opponent_pos:
+                        row, col = opponent_pos
+                        piece = opponentChessboard.grid[row][col]
+                        
+                        # 记录原始位置，避免索引错误
+                        orig_row, orig_col = dragged_piece.position
+                        
+                        if piece and isinstance(dragged_piece, Item):
+                            # 如果是物品，应用到棋子上
+                            if dragged_piece.apply_to_piece(piece):
+                                # 物品使用成功，从奖励盒子中移除
+                                if 0 <= orig_row < rewardBox.rows and 0 <= orig_col < rewardBox.cols:
+                                    rewardBox.grid[orig_row][orig_col] = None
+                                rewardBox.dragged_piece = None
+                                rewardBox.dragging = False
+                                currently_dragging = None
+                                dragged_piece = None
+                                continue
+                    
+                    # 检查是否释放在背包上
+                    bp_pos = backpack.get_grid_position(event.pos)
+                    if bp_pos:
+                        row, col = bp_pos
+                        piece = backpack.grid[row][col]
+                        
+                        # 记录原始位置，避免索引错误
+                        orig_row, orig_col = dragged_piece.position
+                        
+                        # 如果背包位置为空，移动到背包
+                        if not piece:
+                            backpack.grid[row][col] = dragged_piece
+                            dragged_piece.set_position(row, col)
+                            if 0 <= orig_row < rewardBox.rows and 0 <= orig_col < rewardBox.cols:
+                                rewardBox.grid[orig_row][orig_col] = None
+                            rewardBox.dragged_piece = None
+                            rewardBox.dragging = False
+                            currently_dragging = None
+                            dragged_piece = None
+                            continue
+                    
+                    # 如果不是放在棋盘或背包上，恢复到奖励盒子中
+                    rewardBox.end_drag(event.pos)
+                    currently_dragging = None
+                    dragged_piece = None
+                
+                elif currently_dragging == "backpack":
                     # 检查是否释放在我方棋盘上
                     my_pos = myChessboard.get_grid_position(event.pos)
                     if my_pos:
@@ -290,10 +396,11 @@ while running:
     # 填充背景色
     screen.fill(WHITE)
 
-    # 绘制两个棋盘和背包
+    # 绘制两个棋盘、背包和奖励盒子
     myChessboard.draw()
     opponentChessboard.draw()
     backpack.draw()
+    rewardBox.draw()
     
     # 绘制当前拖拽的棋子（如果有）
     if dragged_piece:
