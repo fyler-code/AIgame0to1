@@ -6,6 +6,7 @@ from src.components.Chess.ChessPiece import ChessPiece
 from src.components.BackPack.BackPack import BackPack
 from src.components.Item.Item import Item
 from src.components.RewardBox.RewardBox import RewardBox
+from src.components.MessageBox.MessageBox import MessageBox
 
 # 获取项目根目录路径
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -42,6 +43,11 @@ backpack = BackPack(screen, myChessboard)
 
 # 初始化奖励盒子（位于屏幕中央）
 rewardBox = RewardBox(screen)
+
+# 初始化消息盒子（位于玩家棋盘左侧一个棋子的距离）
+messageBox = MessageBox(screen, myChessboard)
+messageBox.add_message("游戏开始!")
+messageBox.add_gold(100)  # 初始金币
 
 # 添加一些示例物品和棋子到奖励盒子
 reward_items = [
@@ -182,12 +188,21 @@ while running:
                 
                 # 检查是否点击了回合结束按钮
                 if button_rect.collidepoint(event.pos):
+                    # 进入下一回合
+                    is_reward_round = messageBox.next_round()
+                    
+                    # 如果是奖励回合，随机添加奖励
+                    if is_reward_round:
+                        messageBox.add_message("获得新的奖励!")
+                        # 这里可以添加奖励逻辑
+                    
                     # 敌方棋子攻击逻辑
                     for row in range(3):
                         for col in range(3):
                             enemy_piece = opponentChessboard.grid[row][col]
                             if enemy_piece and enemy_piece.can_attack():
-                                opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
+                                if opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False):
+                                    messageBox.add_message(f"敌方{enemy_piece.job}发动攻击!")
                                 enemy_piece.mark_as_attacked()
                     # 重置我方棋子的攻击状态
                     for row in range(3):
@@ -396,11 +411,12 @@ while running:
     # 填充背景色
     screen.fill(WHITE)
 
-    # 绘制两个棋盘、背包和奖励盒子
+    # 绘制两个棋盘、背包、奖励盒子和消息盒子
     myChessboard.draw()
     opponentChessboard.draw()
     backpack.draw()
     rewardBox.draw()
+    messageBox.draw()
     
     # 绘制当前拖拽的棋子（如果有）
     if dragged_piece:

@@ -242,28 +242,47 @@ class Chessboard:
             self.original_position = None
 
     def attack_opponent(self, opponent_board, row, col, is_player=True):
-        """攻击对手棋盘上同一列的第一个棋子，方向根据攻击方决定"""
+        """
+        从当前棋盘的指定位置发起攻击，攻击对手棋盘上相应位置的棋子
+        
+        参数:
+            opponent_board: 对手的棋盘对象
+            row: 攻击方棋子的行坐标
+            col: 攻击方棋子的列坐标
+            is_player: 是否为玩家攻击，用于确定攻击方向
+        
+        返回:
+            bool: 攻击是否成功
+        """
+        # 检查指定位置是否有棋子
+        if not (0 <= row < 3 and 0 <= col < 3):
+            return False
+        
         attacker = self.grid[row][col]
-        if not attacker or not isinstance(attacker, ChessPiece):
-            return
-
-        # 根据攻击方决定检查方向
-        if is_player:
-            # 玩家棋子从下往上检查
-            target_rows = range(2, -1, -1)
+        if not attacker:
+            return False
+        
+        # 确定攻击目标的位置（镜像位置）
+        target_row = 2 - row if is_player else row
+        target_col = col
+        
+        # 检查目标位置是否有棋子
+        if not (0 <= target_row < 3 and 0 <= target_col < 3):
+            return False
+        
+        defender = opponent_board.grid[target_row][target_col]
+        if not defender:
+            return False
+        
+        # 执行攻击
+        defender.lifepoint -= attacker.attack
+        
+        # 检查防守方是否被击败
+        if defender.lifepoint <= 0:
+            # 移除被击败的棋子
+            opponent_board.grid[target_row][target_col] = None
+            print(f"{'玩家' if is_player else '电脑'}的{attacker.job}击败了{'电脑' if is_player else '玩家'}的{defender.job}!")
         else:
-            # 敌方棋子从上往下检查
-            target_rows = range(3)
-
-        # 在对手棋盘上寻找同一列的第一个棋子
-        for target_row in target_rows:
-            target_piece = opponent_board.grid[target_row][col]
-            if target_piece and isinstance(target_piece, ChessPiece):
-                # 计算伤害
-                target_piece.take_damage(attacker.get_attack())
-                print(f"{attacker.get_job()} 攻击了 {target_piece.get_job()}，造成 {attacker.get_attack()} 点伤害")
-                # 检查目标棋子是否死亡
-                if target_piece.get_lifepoint() <= 0:
-                    opponent_board.remove_piece(target_row, col)
-                    print(f"{target_piece.get_job()} 被击败")
-                break
+            print(f"{'玩家' if is_player else '电脑'}的{attacker.job}对{'电脑' if is_player else '玩家'}的{defender.job}造成{attacker.attack}点伤害!")
+        
+        return True
