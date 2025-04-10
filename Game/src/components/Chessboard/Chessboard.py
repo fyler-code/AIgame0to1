@@ -243,7 +243,7 @@ class Chessboard:
 
     def attack_opponent(self, opponent_board, row, col, is_player=True):
         """
-        从当前棋盘的指定位置发起攻击，攻击对手棋盘上相应位置的棋子
+        从当前棋盘的指定位置发起攻击，攻击对手棋盘上同一列的第一个棋子
         
         参数:
             opponent_board: 对手的棋盘对象
@@ -252,37 +252,48 @@ class Chessboard:
             is_player: 是否为玩家攻击，用于确定攻击方向
         
         返回:
-            bool: 攻击是否成功
+            tuple: (bool, str) - 第一个元素表示攻击是否成功，第二个元素是攻击信息
         """
         # 检查指定位置是否有棋子
         if not (0 <= row < 3 and 0 <= col < 3):
-            return False
+            return False, ""
         
         attacker = self.grid[row][col]
         if not attacker:
-            return False
+            return False, ""
         
-        # 确定攻击目标的位置（镜像位置）
-        target_row = 2 - row if is_player else row
-        target_col = col
+        # 确定攻击目标的顺序
+        target_rows = [2, 1, 0] if is_player else [0, 1, 2]
         
-        # 检查目标位置是否有棋子
-        if not (0 <= target_row < 3 and 0 <= target_col < 3):
-            return False
+        # 在对手棋盘上按顺序查找同一列的第一个棋子
+        target_row = None
+        defender = None
         
-        defender = opponent_board.grid[target_row][target_col]
-        if not defender:
-            return False
+        for r in target_rows:
+            if opponent_board.grid[r][col] is not None:
+                target_row = r
+                defender = opponent_board.grid[r][col]
+                break
+        
+        # 如果没有找到目标
+        if defender is None:
+            return False, ""
         
         # 执行攻击
         defender.lifepoint -= attacker.attack
         
+        # 生成攻击信息
+        attacker_side = "Player" if is_player else "Computer"
+        defender_side = "Computer" if is_player else "Player"
+        
         # 检查防守方是否被击败
         if defender.lifepoint <= 0:
             # 移除被击败的棋子
-            opponent_board.grid[target_row][target_col] = None
-            print(f"{'玩家' if is_player else '电脑'}的{attacker.job}击败了{'电脑' if is_player else '玩家'}的{defender.job}!")
+            opponent_board.grid[target_row][col] = None
+            message = f"{attacker_side}'s {attacker.job} defeated {defender_side}'s {defender.job}!"
+            print(message)
         else:
-            print(f"{'玩家' if is_player else '电脑'}的{attacker.job}对{'电脑' if is_player else '玩家'}的{defender.job}造成{attacker.attack}点伤害!")
+            message = f"{attacker_side}'s {attacker.job} dealt {attacker.attack} damage to {defender_side}'s {defender.job}!"
+            print(message)
         
-        return True
+        return True, message

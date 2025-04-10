@@ -56,14 +56,14 @@ class MessageBox:
         message_font = pygame.font.Font(None, int(20 * self.scale_factor))
         
         # 绘制标题
-        title = title_font.render("MessageBox", True, self.TEXT_COLOR)
+        title = title_font.render("Game Info", True, self.TEXT_COLOR)
         title_rect = title.get_rect(center=(x + self.width // 2, y + int(20 * self.scale_factor)))
         self.screen.blit(title, title_rect)
         
         # 绘制游戏基本信息
         gold_text = info_font.render(f"Gold: {self.gold}", True, self.GOLD_COLOR)
         round_text = info_font.render(f"Round: {self.round}", True, self.TEXT_COLOR)
-        reward_text = info_font.render(f"RoundtoReward: {self.round_to_reward - (self.round % self.round_to_reward)}回合", True, self.TEXT_COLOR)
+        reward_text = info_font.render(f"Rounds to Reward: {self.round_to_reward - (self.round % self.round_to_reward)}", True, self.TEXT_COLOR)
         
         self.screen.blit(gold_text, (x + int(20 * self.scale_factor), y + int(50 * self.scale_factor)))
         self.screen.blit(round_text, (x + int(20 * self.scale_factor), y + int(80 * self.scale_factor)))
@@ -79,7 +79,7 @@ class MessageBox:
         )
         
         # 绘制消息标题
-        message_title = info_font.render("MessageBox:", True, self.TEXT_COLOR)
+        message_title = info_font.render("Messages:", True, self.TEXT_COLOR)
         self.screen.blit(message_title, (x + int(20 * self.scale_factor), y + int(150 * self.scale_factor)))
         
         # 绘制消息列表
@@ -99,26 +99,26 @@ class MessageBox:
     def add_gold(self, amount):
         """增加金币"""
         self.gold += amount
-        self.add_message(f"获得 {amount} 金币")
+        self.add_message(f"Gained {amount} gold")
     
     def spend_gold(self, amount):
         """花费金币"""
         if self.gold >= amount:
             self.gold -= amount
-            self.add_message(f"花费 {amount} 金币")
+            self.add_message(f"Spent {amount} gold")
             return True
         else:
-            self.add_message("金币不足!")
+            self.add_message("Not enough gold!")
             return False
     
     def next_round(self):
         """进入下一回合"""
         self.round += 1
-        self.add_message(f"进入第 {self.round} 回合")
+        self.add_message(f"Round {self.round} started")
         
         # 检查是否到达奖励回合
         if self.round % self.round_to_reward == 0:
-            self.add_message("达到奖励回合!")
+            self.add_message("Reward round reached!")
             return True  # 返回True表示应该给予奖励
         return False
     

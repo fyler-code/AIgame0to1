@@ -54,6 +54,35 @@ class Item:
             
             # 绘制图片
             screen.blit(scaled_image, (x, y))
+            
+            # 计算屏幕大小和缩放比例
+            screen_width, screen_height = screen.get_size()
+            scale_factor = min(screen_width / 1920, screen_height / 1200)
+            
+            # 计算物品中心位置（用于显示属性）
+            center_x = x + new_size[0] // 2
+            center_y = y + new_size[1]
+            
+            # 绘制物品属性（攻击力和生命值）
+            font = pygame.font.Font(None, int(20 * scale_factor))
+            attack_text = font.render(str(self.attack), True, (255, 0, 0))
+            lifepoint_text = font.render(str(self.lifepoint), True, (0, 255, 0))
+            
+            # 创建黑色背景使文字更清晰
+            text_bg_width = int(50 * scale_factor)
+            text_bg_height = int(20 * scale_factor)
+            text_bg = pygame.Surface((text_bg_width, text_bg_height))
+            text_bg.set_alpha(150)  # 半透明
+            text_bg.fill((0, 0, 0))
+            
+            # 计算背景位置（物品底部）
+            bg_x = center_x - text_bg_width // 2
+            bg_y = center_y - text_bg_height // 2
+            
+            # 绘制背景和文字
+            screen.blit(text_bg, (bg_x, bg_y))
+            screen.blit(attack_text, (bg_x + int(10 * scale_factor), bg_y + int(2 * scale_factor)))
+            screen.blit(lifepoint_text, (bg_x + int(30 * scale_factor), bg_y + int(2 * scale_factor)))
     
     def apply_to_piece(self, piece):
         """将物品效果应用到棋子上"""

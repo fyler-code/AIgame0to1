@@ -15,7 +15,7 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 pygame.init()
 
 # 设置屏幕大小
-screen_size = (1440, 900)
+screen_size = (1440, 700)
 screen = pygame.display.set_mode(screen_size)
 
 # 计算缩放比例（基于参考分辨率1920*1200）
@@ -46,7 +46,7 @@ rewardBox = RewardBox(screen)
 
 # 初始化消息盒子（位于玩家棋盘左侧一个棋子的距离）
 messageBox = MessageBox(screen, myChessboard)
-messageBox.add_message("游戏开始!")
+messageBox.add_message("Game started!")
 messageBox.add_gold(100)  # 初始金币
 
 # 添加一些示例物品和棋子到奖励盒子
@@ -152,7 +152,9 @@ while running:
                         row, col = myChessboard.menu_target
                         piece = myChessboard.grid[row][col]
                         if piece and piece.can_attack():
-                            myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
+                            success, attack_message = myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
+                            if success:
+                                messageBox.add_message(attack_message)
                             piece.mark_as_attacked()
                         myChessboard.show_menu = False
                     # 不管点击了菜单上的什么，都阻止下面的拖拽逻辑
@@ -193,7 +195,7 @@ while running:
                     
                     # 如果是奖励回合，随机添加奖励
                     if is_reward_round:
-                        messageBox.add_message("获得新的奖励!")
+                        messageBox.add_message("New reward available!")
                         # 这里可以添加奖励逻辑
                     
                     # 敌方棋子攻击逻辑
@@ -201,8 +203,9 @@ while running:
                         for col in range(3):
                             enemy_piece = opponentChessboard.grid[row][col]
                             if enemy_piece and enemy_piece.can_attack():
-                                if opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False):
-                                    messageBox.add_message(f"敌方{enemy_piece.job}发动攻击!")
+                                success, attack_message = opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
+                                if success:
+                                    messageBox.add_message(attack_message)
                                 enemy_piece.mark_as_attacked()
                     # 重置我方棋子的攻击状态
                     for row in range(3):
@@ -433,12 +436,25 @@ while running:
         else:
             # 如果没有图片，绘制一个圆形代表棋子
             pygame.draw.circle(screen, dragged_piece.color, (mouse_x, mouse_y), int(40 * scale_factor))
-            # 绘制棋子属性
-            font = pygame.font.Font(None, int(24 * scale_factor))
-            attack_text = font.render(str(dragged_piece.attack), True, (255, 255, 255))
-            lifepoint_text = font.render(str(dragged_piece.lifepoint), True, (255, 255, 255))
-            screen.blit(attack_text, (mouse_x - int(15 * scale_factor), mouse_y - int(10 * scale_factor)))
-            screen.blit(lifepoint_text, (mouse_x + int(5 * scale_factor), mouse_y - int(10 * scale_factor)))
+        
+        # 创建半透明黑色背景使属性文字更清晰
+        text_bg_width = int(60 * scale_factor)
+        text_bg_height = int(24 * scale_factor)
+        text_bg = pygame.Surface((text_bg_width, text_bg_height))
+        text_bg.set_alpha(150)  # 半透明
+        text_bg.fill((0, 0, 0))
+        
+        # 绘制属性背景
+        bg_x = mouse_x - text_bg_width // 2
+        bg_y = mouse_y + int(30 * scale_factor)
+        screen.blit(text_bg, (bg_x, bg_y))
+        
+        # 绘制棋子属性
+        font = pygame.font.Font(None, int(24 * scale_factor))
+        attack_text = font.render(str(dragged_piece.attack), True, (255, 0, 0))  # 攻击力红色
+        lifepoint_text = font.render(str(dragged_piece.lifepoint), True, (0, 255, 0))  # 生命值绿色
+        screen.blit(attack_text, (bg_x + int(10 * scale_factor), bg_y + int(4 * scale_factor)))
+        screen.blit(lifepoint_text, (bg_x + int(35 * scale_factor), bg_y + int(4 * scale_factor)))
 
     # 绘制回合结束按钮
     pygame.draw.rect(screen, (200, 200, 200), button_rect.inflate(int(20 * scale_factor), int(10 * scale_factor)))
