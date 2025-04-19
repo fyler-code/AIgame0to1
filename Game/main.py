@@ -125,6 +125,39 @@ print(f"敌方弓箭手: {enemy_archer}")
 
 print(f"\n背包中的棋子数量: {backpack.count_pieces()}")
 
+# 加载回合结束按钮的图片
+button_images = []
+for i in range(1, 22):
+    try:
+        # 修改路径，加入"遥感图片"文件夹
+        img_path = os.path.join(project_root, "assets", "images", "摇杆图片", f"{i}.png")
+        img = pygame.image.load(img_path)
+        # 调整图片大小，根据需要调整
+        img = pygame.transform.scale(img, (int(400 * scale_factor), int(400 * scale_factor)))
+        button_images.append(img)
+    except Exception as e:
+        print(f"无法加载图片: {i}.png - 错误: {e}")
+        # 创建一个默认图片（红色方块）
+        default_img = pygame.Surface((int(100 * scale_factor), int(100 * scale_factor)))
+        default_img.fill((255, 0, 0))
+        button_images.append(default_img)
+
+# 按钮动画状态
+button_animation_active = False
+button_animation_start_time = 0
+button_animation_frame = 0
+button_animation_duration = 250  # 2秒内完成动画
+button_animation_frames = len(button_images)
+
+# 修改回合结束按钮的位置代码
+button_size = button_images[0].get_size()
+button_rect = pygame.Rect(
+    screen_size[0] - button_size[0] - int(20 * scale_factor),
+    screen_size[1] - button_size[1] - int(50 * scale_factor),
+    button_size[0],
+    button_size[1]
+)
+
 # 游戏主循环
 running = True
 clock = pygame.time.Clock()
@@ -132,11 +165,6 @@ clock = pygame.time.Clock()
 # 拖拽状态变量
 currently_dragging = None  # 可以是 "my_chessboard", "opponent_chessboard", "backpack" 或 None
 dragged_piece = None
-
-# 回合结束按钮
-button_font = pygame.font.Font(None, int(36 * scale_factor))
-button_text = button_font.render("Time End", True, (0, 0, 0))
-button_rect = button_text.get_rect(center=(screen_size[0] // 2, screen_size[1] - int(50 * scale_factor)))
 
 while running:
     # 事件处理
@@ -190,6 +218,11 @@ while running:
                 
                 # 检查是否点击了回合结束按钮
                 if button_rect.collidepoint(event.pos):
+                    # 开始按钮动画
+                    button_animation_active = True
+                    button_animation_start_time = pygame.time.get_ticks()
+                    button_animation_frame = 0  # 从第一帧开始
+                    
                     # 进入下一回合
                     is_reward_round = messageBox.next_round()
                     
@@ -207,12 +240,19 @@ while running:
                                 if success:
                                     messageBox.add_message(attack_message)
                                 enemy_piece.mark_as_attacked()
-                    # 重置我方棋子的攻击状态
+                    
+                    # 重置所有棋子的攻击状态
                     for row in range(3):
                         for col in range(3):
+                            # 重置我方棋子的攻击状态
                             piece = myChessboard.grid[row][col]
                             if piece:
                                 piece.reset_attack_status()
+                            
+                            # 重置敌方棋子的攻击状态
+                            enemy_piece = opponentChessboard.grid[row][col]
+                            if enemy_piece:
+                                enemy_piece.reset_attack_status()
             
             elif event.button == 3:  # 右键点击
                 # 检查玩家棋盘上的点击
@@ -457,8 +497,22 @@ while running:
         screen.blit(lifepoint_text, (bg_x + int(35 * scale_factor), bg_y + int(4 * scale_factor)))
 
     # 绘制回合结束按钮
-    pygame.draw.rect(screen, (200, 200, 200), button_rect.inflate(int(20 * scale_factor), int(10 * scale_factor)))
-    screen.blit(button_text, button_rect)
+    if button_animation_active:
+        # 如果动画激活，计算当前应该显示的帧
+        current_time = pygame.time.get_ticks()
+        elapsed_time = current_time - button_animation_start_time
+        
+        # 计算当前应该显示的帧索引（在2秒内从1.png播放到12.png）
+        frame_index = min(int(elapsed_time / button_animation_duration * button_animation_frames), button_animation_frames - 1)
+        screen.blit(button_images[frame_index], button_rect)
+        
+        # 动画结束重置
+        if elapsed_time >= button_animation_duration:
+            button_animation_active = False
+            button_animation_frame = 0
+    else:
+        # 如果动画没有激活，显示第一帧
+        screen.blit(button_images[0], button_rect)
 
     # 更新显示
     pygame.display.flip()
