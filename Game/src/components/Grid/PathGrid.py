@@ -71,16 +71,17 @@ class PathGrid:
             # 计算这一列第一个格子的垂直偏移（使每列居中）
             v_offset = (self.max_rows - num_cells) * self.grid_size // 2
             
-            # 特殊处理第五列、第七列和第九列，向下移动半个格子
-            if col_idx in [4, 6, 8]:  # 由于索引从0开始，所以第5、7、9列对应索引4、6、8
-                v_offset += self.grid_size // 2
+            # 为第5列和第7列添加额外的半个格子偏移
+            additional_offset = 0
+            if col_idx == 4 or col_idx == 6:  # 第5列和第7列 (索引从0开始)
+                additional_offset = self.grid_size // 2
             
             # 遍历这一列的每个有效格子
             for row_idx, cell in enumerate(col_cells):
                 if cell is not None:  # 只绘制有效的格子
                     # 计算格子的屏幕坐标
                     x = self.position[0] + col_idx * self.grid_size
-                    y = self.position[1] + row_idx * self.grid_size + v_offset
+                    y = self.position[1] + row_idx * self.grid_size + v_offset + additional_offset
                     
                     # 选择颜色（高亮或普通）
                     if cell['highlight']:
@@ -123,12 +124,13 @@ class PathGrid:
         # 计算这一列的垂直偏移
         v_offset = (self.max_rows - num_cells) * self.grid_size // 2
         
-        # 特殊处理第五列、第七列和第九列
-        if col_idx in [4, 6, 8]:
-            v_offset += self.grid_size // 2
+        # 为第5列和第7列添加额外的半个格子偏移
+        additional_offset = 0
+        if col_idx == 4 or col_idx == 6:  # 第5列和第7列 (索引从0开始)
+            additional_offset = self.grid_size // 2
         
         # 调整后的y坐标
-        adjusted_y = y - grid_y - v_offset
+        adjusted_y = y - grid_y - v_offset - additional_offset
         
         # 计算行索引
         row_idx = adjusted_y // self.grid_size
@@ -187,13 +189,14 @@ class PathGrid:
                 # 计算这一列的垂直偏移
                 v_offset = (self.max_rows - num_cells) * self.grid_size // 2
                 
-                # 特殊处理第五列、第七列和第九列
-                if col in [4, 6, 8]:
-                    v_offset += self.grid_size // 2
+                # 为第5列和第7列添加额外的半个格子偏移
+                additional_offset = 0
+                if col == 4 or col == 6:  # 第5列和第7列 (索引从0开始)
+                    additional_offset = self.grid_size // 2
                 
                 # 计算格子的屏幕坐标
                 x = self.position[0] + col * self.grid_size
-                y = self.position[1] + row * self.grid_size + v_offset
+                y = self.position[1] + row * self.grid_size + v_offset + additional_offset
                 
                 return (x, y)
         return None
