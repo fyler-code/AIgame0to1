@@ -7,6 +7,7 @@ from src.components.BackPack.BackPack import BackPack
 from src.components.Item.Item import Item
 from src.components.RewardBox.RewardBox import RewardBox
 from src.components.MessageBox.MessageBox import MessageBox
+from src.components.Grid.PathGrid import PathGrid
 
 # 获取项目根目录路径
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -48,6 +49,14 @@ rewardBox = RewardBox(screen)
 messageBox = MessageBox(screen, myChessboard)
 messageBox.add_message("Game started!")
 messageBox.add_gold(100)  # 初始金币
+
+# 初始化路径网格
+pathGrid = PathGrid(screen, myChessboard)
+# 修改路径网格位置，放置在右上角
+pathGrid.position = (
+    screen_size[0] - pathGrid.width - int(20 * scale_factor),  # 距离右边缘20个像素
+    int(20 * scale_factor)  # 距离上边缘20个像素
+)
 
 # 添加一些示例物品和棋子到奖励盒子
 reward_items = [
@@ -158,6 +167,18 @@ button_rect = pygame.Rect(
     button_size[1]
 )
 
+# 在游戏初始化部分添加玩家信息和当前位置
+# 玩家信息
+player = {
+    'color': (0, 100, 255),  # 玩家标记颜色
+    'name': '玩家1',         # 玩家名称
+    'position': None         # 当前位置，初始为None
+}
+
+# 在主循环之前，初始化一些设置
+# 高亮显示起始位置
+pathGrid.highlight_cell(0, 0, True)  # 第一列第一个格子高亮
+
 # 游戏主循环
 running = True
 clock = pygame.time.Clock()
@@ -173,6 +194,41 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # 左键点击
+                # 检查是否点击了路径网格
+                cell = pathGrid.get_cell_at_position(event.pos)
+                if cell:
+                    col, row = cell['position'][1], cell['position'][0]  # position 是 (row, col)
+                    
+                    # 检查是否可以移动到这个格子
+                    can_move = False
+                    
+                    # 第一次移动，可以从起点开始
+                    if player['position'] is None and col == 0 and row == 0:
+                        can_move = True
+                    # 后续移动，只能移动到相邻列
+                    elif player['position']:
+                        current_col, current_row = player['position']
+                        if abs(col - current_col) == 1:  # 只能移动到相邻列
+                            can_move = True
+                    
+                    if can_move:
+                        # 如果当前有位置，清除旧位置
+                        if player['position']:
+                            old_col, old_row = player['position']
+                            pathGrid.clear_cell(old_col, old_row)
+                        
+                        # 更新玩家位置
+                        player['position'] = (col, row)
+                        pathGrid.occupy_cell(col, row, player)
+                        
+                        # 添加移动消息
+                        messageBox.add_message(f"移动到位置: 列{col+1}行{row+1}")
+                        
+                        # 如果到达终点（最后一列）
+                        if col == pathGrid.num_cols - 1:
+                            messageBox.add_message("到达终点！")
+                            # 这里可以添加到达终点的奖励逻辑
+                
                 # 处理菜单点击
                 if myChessboard.show_menu:
                     if myChessboard.handle_menu_click(event.pos):
@@ -460,6 +516,7 @@ while running:
     backpack.draw()
     rewardBox.draw()
     messageBox.draw()
+    pathGrid.draw()
     
     # 绘制当前拖拽的棋子（如果有）
     if dragged_piece:
