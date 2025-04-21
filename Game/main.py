@@ -9,6 +9,7 @@ from src.components.RewardBox.RewardBox import RewardBox
 from src.components.Message.MessageBoard import MessageBoard
 from src.components.Grid.PathGrid import PathGrid
 from src.components.Animation.BulletAnimation import BulletAnimation
+from src.components.Animation.AnimationManager import AnimationManager
 
 # 获取项目根目录路径
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -188,6 +189,9 @@ if pathGrid.cols_config[1] >= 1:  # 确保第二列至少有一个格子
     for r in range(0, min(2, pathGrid.cols_config[1])):
         pathGrid.highlight_cell(1, r, True)
 
+# 初始化动画管理器
+animation_manager = AnimationManager()
+
 # 游戏主循环
 running = True
 clock = pygame.time.Clock()
@@ -267,6 +271,24 @@ while running:
                             success, attack_message, attacker_pos, target_pos = myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
                             if success:
                                 messageBoard.add_message(attack_message)
+                                # 添加攻击动画效果
+                                if attacker_pos and target_pos:
+                                    # 根据攻击者类型设置不同的子弹颜色
+                                    if piece.job == "法师":
+                                        bullet_color = (0, 0, 255)  # 蓝色子弹
+                                    elif piece.job == "弓箭手":
+                                        bullet_color = (0, 255, 0)  # 绿色子弹
+                                    else:
+                                        bullet_color = (255, 0, 0)  # 红色子弹
+                                        
+                                    # 创建子弹动画
+                                    animation_manager.add_bullet_animation(
+                                        attacker_pos, 
+                                        target_pos, 
+                                        color=bullet_color,
+                                        size=int(10 * scale_factor),
+                                        speed=int(15 * scale_factor)
+                                    )
                             piece.mark_as_attacked()
                         myChessboard.show_menu = False
                     # 不管点击了菜单上的什么，都阻止下面的拖拽逻辑
@@ -319,6 +341,24 @@ while running:
                                 success, attack_message, attacker_pos, target_pos = opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
                                 if success:
                                     messageBoard.add_message(attack_message)
+                                    # 添加敌方攻击动画效果
+                                    if attacker_pos and target_pos:
+                                        # 根据攻击者类型设置不同的子弹颜色
+                                        if enemy_piece.job == "敌方法师":
+                                            bullet_color = (50, 50, 200)  # 蓝色子弹
+                                        elif enemy_piece.job == "敌方弓箭手":
+                                            bullet_color = (50, 200, 50)  # 绿色子弹
+                                        else:
+                                            bullet_color = (200, 50, 50)  # 红色子弹
+                                            
+                                        # 创建子弹动画
+                                        animation_manager.add_bullet_animation(
+                                            attacker_pos, 
+                                            target_pos, 
+                                            color=bullet_color,
+                                            size=int(10 * scale_factor),
+                                            speed=int(15 * scale_factor)
+                                        )
                                     enemy_piece.mark_as_attacked()
                     
                     # 重置所有棋子的攻击状态
@@ -541,6 +581,10 @@ while running:
     rewardBox.draw()
     messageBoard.draw()
     pathGrid.draw()
+    
+    # 更新和绘制动画
+    animation_manager.update()
+    animation_manager.draw(screen)
     
     # 绘制当前拖拽的棋子（如果有）
     if dragged_piece:

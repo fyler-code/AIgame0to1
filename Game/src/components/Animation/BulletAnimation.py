@@ -4,7 +4,7 @@ import math
 class BulletAnimation:
     """子弹动画类，处理攻击时的子弹飞行效果"""
     
-    def __init__(self, start_pos, target_pos, color=(255, 0, 0), size=10, speed=10):
+    def __init__(self, start_pos, target_pos, color=(255, 0, 0), size=50, speed=10):
         """
         初始化子弹动画
         
