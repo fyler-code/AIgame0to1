@@ -6,8 +6,9 @@ from src.components.Chess.ChessPiece import ChessPiece
 from src.components.BackPack.BackPack import BackPack
 from src.components.Item.Item import Item
 from src.components.RewardBox.RewardBox import RewardBox
-from src.components.MessageBox.MessageBox import MessageBox
+from src.components.Message.MessageBoard import MessageBoard
 from src.components.Grid.PathGrid import PathGrid
+from src.components.Animation.BulletAnimation import BulletAnimation
 
 # 获取项目根目录路径
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -45,10 +46,10 @@ backpack = BackPack(screen, myChessboard)
 # 初始化奖励盒子（位于屏幕中央）
 rewardBox = RewardBox(screen)
 
-# 初始化消息盒子（位于玩家棋盘左侧一个棋子的距离）
-messageBox = MessageBox(screen, myChessboard)
-messageBox.add_message("Game started!")
-messageBox.add_gold(100)  # 初始金币
+# 初始化消息板（位于玩家棋盘左侧一个棋子的距离）
+messageBoard = MessageBoard(screen, myChessboard)
+messageBoard.add_message("游戏开始！准备战斗！")
+messageBoard.update_coins(100)  # 初始金币
 
 # 初始化路径网格
 pathGrid = PathGrid(screen, myChessboard)
@@ -75,9 +76,11 @@ print(f"我的棋盘位置: {myChessboard.position}")
 print(f"对手棋盘位置: {opponentChessboard.position}")
 print(f"背包位置: {backpack.position}")
 print(f"奖励盒子位置: {rewardBox.position}")
+print(f"消息板位置: {messageBoard.position}")
 print(f"棋盘大小: {myChessboard.size}x{myChessboard.size}")
 print(f"背包大小: {backpack.width}x{backpack.height}")
 print(f"奖励盒子大小: {rewardBox.width}x{rewardBox.height}")
+print(f"消息板大小: {messageBoard.width}x{messageBoard.height}")
 print(f"背包格子大小: {backpack.grid_size}")
 print(f"棋盘格子大小: {myChessboard.grid_size}")
 print(f"奖励盒子格子大小: {rewardBox.grid_size}")
@@ -179,9 +182,20 @@ player = {
 # 高亮显示起始位置
 pathGrid.highlight_cell(0, 0, True)  # 第一列第一个格子高亮
 
+# 高亮显示可移动的下一步位置（第二列的临近格子）
+if pathGrid.cols_config[1] >= 1:  # 确保第二列至少有一个格子
+    # 高亮第二列中与起点相邻的格子（第一行和第二行）
+    for r in range(0, min(2, pathGrid.cols_config[1])):
+        pathGrid.highlight_cell(1, r, True)
+
 # 游戏主循环
 running = True
 clock = pygame.time.Clock()
+button_animation_timer = 0
+animation_duration = 2000  # 动画持续时间（毫秒）
+button_clicked = False
+current_frame = 0
+active_animations = []  # 用于存储活跃的子弹动画
 
 # 拖拽状态变量
 currently_dragging = None  # 可以是 "my_chessboard", "opponent_chessboard", "backpack" 或 None
@@ -205,11 +219,15 @@ while running:
                     # 第一次移动，可以从起点开始
                     if player['position'] is None and col == 0 and row == 0:
                         can_move = True
-                    # 后续移动，只能移动到相邻列
+                    # 后续移动规则：只能移动到下一列的临近两格
                     elif player['position']:
                         current_col, current_row = player['position']
-                        if abs(col - current_col) == 1:  # 只能移动到相邻列
-                            can_move = True
+                        
+                        # 检查是否是相邻列
+                        if col == current_col + 1:
+                            # 检查是否是临近两格（当前行、上一行或下一行）
+                            if abs(row - current_row) <= 1:
+                                can_move = True
                     
                     if can_move:
                         # 如果当前有位置，清除旧位置
@@ -217,16 +235,26 @@ while running:
                             old_col, old_row = player['position']
                             pathGrid.clear_cell(old_col, old_row)
                         
+                        # 高亮可移动的下一步位置
+                        pathGrid.clear_all_highlights()
+                        next_col = col + 1
+                        if next_col < pathGrid.num_cols:
+                            # 获取下一列的行数
+                            next_col_rows = pathGrid.cols_config[next_col]
+                            # 高亮当前行和相邻行（如果存在）
+                            for r in range(max(0, row-1), min(next_col_rows, row+2)):
+                                pathGrid.highlight_cell(next_col, r, True)
+                        
                         # 更新玩家位置
                         player['position'] = (col, row)
                         pathGrid.occupy_cell(col, row, player)
                         
                         # 添加移动消息
-                        messageBox.add_message(f"移动到位置: 列{col+1}行{row+1}")
+                        messageBoard.add_message(f"移动到位置: 列{col+1}行{row+1}")
                         
                         # 如果到达终点（最后一列）
                         if col == pathGrid.num_cols - 1:
-                            messageBox.add_message("到达终点！")
+                            messageBoard.add_message("到达终点！")
                             # 这里可以添加到达终点的奖励逻辑
                 
                 # 处理菜单点击
@@ -236,9 +264,9 @@ while running:
                         row, col = myChessboard.menu_target
                         piece = myChessboard.grid[row][col]
                         if piece and piece.can_attack():
-                            success, attack_message = myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
+                            success, attack_message, attacker_pos, target_pos = myChessboard.attack_opponent(opponentChessboard, row, col, is_player=True)
                             if success:
-                                messageBox.add_message(attack_message)
+                                messageBoard.add_message(attack_message)
                             piece.mark_as_attacked()
                         myChessboard.show_menu = False
                     # 不管点击了菜单上的什么，都阻止下面的拖拽逻辑
@@ -280,22 +308,18 @@ while running:
                     button_animation_frame = 0  # 从第一帧开始
                     
                     # 进入下一回合
-                    is_reward_round = messageBox.next_round()
-                    
-                    # 如果是奖励回合，随机添加奖励
-                    if is_reward_round:
-                        messageBox.add_message("New reward available!")
-                        # 这里可以添加奖励逻辑
+                    messageBoard.next_turn()
+                    messageBoard.update_coins(10)  # 每回合增加10金币
                     
                     # 敌方棋子攻击逻辑
                     for row in range(3):
                         for col in range(3):
                             enemy_piece = opponentChessboard.grid[row][col]
                             if enemy_piece and enemy_piece.can_attack():
-                                success, attack_message = opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
+                                success, attack_message, attacker_pos, target_pos = opponentChessboard.attack_opponent(myChessboard, row, col, is_player=False)
                                 if success:
-                                    messageBox.add_message(attack_message)
-                                enemy_piece.mark_as_attacked()
+                                    messageBoard.add_message(attack_message)
+                                    enemy_piece.mark_as_attacked()
                     
                     # 重置所有棋子的攻击状态
                     for row in range(3):
@@ -510,12 +534,12 @@ while running:
     # 填充背景色
     screen.fill(WHITE)
 
-    # 绘制两个棋盘、背包、奖励盒子和消息盒子
+    # 绘制两个棋盘、背包、奖励盒子和消息板
     myChessboard.draw()
     opponentChessboard.draw()
     backpack.draw()
     rewardBox.draw()
-    messageBox.draw()
+    messageBoard.draw()
     pathGrid.draw()
     
     # 绘制当前拖拽的棋子（如果有）

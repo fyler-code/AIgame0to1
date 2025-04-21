@@ -242,58 +242,54 @@ class Chessboard:
             self.original_position = None
 
     def attack_opponent(self, opponent_board, row, col, is_player=True):
-        """
-        从当前棋盘的指定位置发起攻击，攻击对手棋盘上同一列的第一个棋子
-        
-        参数:
-            opponent_board: 对手的棋盘对象
-            row: 攻击方棋子的行坐标
-            col: 攻击方棋子的列坐标
-            is_player: 是否为玩家攻击，用于确定攻击方向
-        
-        返回:
-            tuple: (bool, str) - 第一个元素表示攻击是否成功，第二个元素是攻击信息
-        """
-        # 检查指定位置是否有棋子
-        if not (0 <= row < 3 and 0 <= col < 3):
-            return False, ""
-        
+        """攻击对手棋盘上同一列的第一个棋子，方向根据攻击方决定"""
         attacker = self.grid[row][col]
-        if not attacker:
-            return False, ""
-        
-        # 确定攻击目标的顺序
-        target_rows = [2, 1, 0] if is_player else [0, 1, 2]
-        
-        # 在对手棋盘上按顺序查找同一列的第一个棋子
-        target_row = None
-        defender = None
-        
-        for r in target_rows:
-            if opponent_board.grid[r][col] is not None:
-                target_row = r
-                defender = opponent_board.grid[r][col]
-                break
-        
-        # 如果没有找到目标
-        if defender is None:
-            return False, ""
-        
-        # 执行攻击
-        defender.lifepoint -= attacker.attack
-        
-        # 生成攻击信息
-        attacker_side = "Player" if is_player else "Computer"
-        defender_side = "Computer" if is_player else "Player"
-        
-        # 检查防守方是否被击败
-        if defender.lifepoint <= 0:
-            # 移除被击败的棋子
-            opponent_board.grid[target_row][col] = None
-            message = f"{attacker_side}'s {attacker.job} defeated {defender_side}'s {defender.job}!"
-            print(message)
+        if not attacker or not isinstance(attacker, ChessPiece):
+            return False, "没有棋子可以攻击"
+
+        # 根据攻击方决定检查方向
+        if is_player:
+            # 玩家棋子从下往上检查
+            target_rows = range(2, -1, -1)
         else:
-            message = f"{attacker_side}'s {attacker.job} dealt {attacker.attack} damage to {defender_side}'s {defender.job}!"
-            print(message)
+            # 敌方棋子从上往下检查
+            target_rows = range(3)
+
+        # 获取攻击者在棋盘上的绝对位置（中心点）
+        attacker_pos = self.get_piece_center_position(row, col)
+        target_pos = None  # 目标位置，初始为None
+        target_piece = None  # 攻击的目标，初始为None
+
+        # 在对手棋盘上寻找同一列的第一个棋子
+        for target_row in target_rows:
+            target_piece = opponent_board.grid[target_row][col]
+            if target_piece and isinstance(target_piece, ChessPiece):
+                # 找到目标，获取目标中心位置
+                target_pos = opponent_board.get_piece_center_position(target_row, col)
+                
+                # 计算伤害
+                target_piece.take_damage(attacker.get_attack())
+                attack_message = f"{attacker.get_job()} 攻击了 {target_piece.get_job()}，造成 {attacker.get_attack()} 点伤害"
+                print(attack_message)
+                
+                # 检查目标棋子是否死亡
+                if target_piece.get_lifepoint() <= 0:
+                    opponent_board.remove_piece(target_row, col)
+                    death_message = f"{target_piece.get_job()} 被击败"
+                    print(death_message)
+                    attack_message += f"，{death_message}"
+                
+                return True, attack_message, attacker_pos, target_pos
+                
+        return False, "没有找到攻击目标", None, None
+    
+    def get_piece_center_position(self, row, col):
+        """获取棋子中心点的屏幕坐标"""
+        board_x, board_y = self.position
+        grid_size = self.grid_size
         
-        return True, message
+        # 计算棋子中心位置
+        x = board_x + col * grid_size + grid_size // 2
+        y = board_y + row * grid_size + grid_size // 2
+        
+        return (x, y)
