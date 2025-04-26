@@ -245,7 +245,7 @@ class Chessboard:
         """攻击对手棋盘上同一列的第一个棋子，方向根据攻击方决定"""
         attacker = self.grid[row][col]
         if not attacker or not isinstance(attacker, ChessPiece):
-            return False, "没有棋子可以攻击"
+            return False, "没有棋子可以攻击", None, None
 
         # 根据攻击方决定检查方向
         if is_player:
@@ -267,17 +267,19 @@ class Chessboard:
                 # 找到目标，获取目标中心位置
                 target_pos = opponent_board.get_piece_center_position(target_row, col)
                 
-                # 计算伤害
-                target_piece.take_damage(attacker.get_attack())
+                # 构造攻击消息
                 attack_message = f"{attacker.get_job()} 攻击了 {target_piece.get_job()}，造成 {attacker.get_attack()} 点伤害"
                 print(attack_message)
                 
+                # 因为伤害应用延迟到动画完成后，这里不再直接扣减生命值
+                # 但保留原先的代码逻辑注释，以便理解流程
+                # target_piece.take_damage(attacker.get_attack())
                 # 检查目标棋子是否死亡
-                if target_piece.get_lifepoint() <= 0:
-                    opponent_board.remove_piece(target_row, col)
-                    death_message = f"{target_piece.get_job()} 被击败"
-                    print(death_message)
-                    attack_message += f"，{death_message}"
+                # if target_piece.get_lifepoint() <= 0:
+                #    opponent_board.remove_piece(target_row, col)
+                #    death_message = f"{target_piece.get_job()} 被击败"
+                #    print(death_message)
+                #    attack_message += f"，{death_message}"
                 
                 return True, attack_message, attacker_pos, target_pos
                 

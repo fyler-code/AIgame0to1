@@ -192,6 +192,9 @@ if pathGrid.cols_config[1] >= 1:  # 确保第二列至少有一个格子
 # 初始化动画管理器
 animation_manager = AnimationManager()
 
+# 创建一个列表用于存储待处理的攻击结果
+pending_attacks = []  # [(对手棋盘, 行, 列, 伤害值, 消息, 是否玩家攻击), ...]
+
 # 游戏主循环
 running = True
 clock = pygame.time.Clock()
@@ -278,17 +281,38 @@ while running:
                                         bullet_color = (0, 0, 255)  # 蓝色子弹
                                     elif piece.job == "弓箭手":
                                         bullet_color = (0, 255, 0)  # 绿色子弹
+                                    elif piece.is_fusion:
+                                        bullet_color = (255, 100, 100)  # 浅红色子弹（融合战士）
                                     else:
                                         bullet_color = (255, 0, 0)  # 红色子弹
                                         
                                     # 创建子弹动画
-                                    animation_manager.add_bullet_animation(
+                                    bullet = animation_manager.add_bullet_animation(
                                         attacker_pos, 
                                         target_pos, 
                                         color=bullet_color,
                                         size=int(10 * scale_factor),
                                         speed=int(15 * scale_factor)
                                     )
+                                    
+                                    # 将攻击结果添加到待处理列表
+                                    target_row = -1
+                                    target_col = col
+                                    # 寻找目标行
+                                    for r in range(3):
+                                        if opponentChessboard.grid[2-r][col]:
+                                            target_row = 2-r
+                                            break
+                                    if target_row >= 0:
+                                        # 记录攻击信息以便动画完成后处理
+                                        pending_attacks.append((
+                                            opponentChessboard,  # 目标棋盘
+                                            target_row,          # 目标行
+                                            col,                 # 目标列
+                                            piece.attack,        # 伤害值
+                                            attack_message,      # 攻击消息
+                                            True                 # 是玩家攻击
+                                        ))
                             piece.mark_as_attacked()
                         myChessboard.show_menu = False
                     # 不管点击了菜单上的什么，都阻止下面的拖拽逻辑
@@ -348,17 +372,38 @@ while running:
                                             bullet_color = (50, 50, 200)  # 蓝色子弹
                                         elif enemy_piece.job == "敌方弓箭手":
                                             bullet_color = (50, 200, 50)  # 绿色子弹
+                                        elif enemy_piece.is_fusion:
+                                            bullet_color = (220, 80, 80)  # 浅红色子弹（融合战士）
                                         else:
                                             bullet_color = (200, 50, 50)  # 红色子弹
                                             
                                         # 创建子弹动画
-                                        animation_manager.add_bullet_animation(
+                                        bullet = animation_manager.add_bullet_animation(
                                             attacker_pos, 
                                             target_pos, 
                                             color=bullet_color,
                                             size=int(10 * scale_factor),
                                             speed=int(15 * scale_factor)
                                         )
+                                        
+                                        # 将攻击结果添加到待处理列表
+                                        target_row = -1
+                                        target_col = col
+                                        # 寻找目标行
+                                        for r in range(3):
+                                            if myChessboard.grid[r][col]:
+                                                target_row = r
+                                                break
+                                        if target_row >= 0:
+                                            # 记录攻击信息以便动画完成后处理
+                                            pending_attacks.append((
+                                                myChessboard,     # 目标棋盘
+                                                target_row,       # 目标行
+                                                col,              # 目标列
+                                                enemy_piece.attack, # 伤害值
+                                                attack_message,   # 攻击消息
+                                                False             # 非玩家攻击
+                                            ))
                                     enemy_piece.mark_as_attacked()
                     
                     # 重置所有棋子的攻击状态
@@ -582,9 +627,49 @@ while running:
     messageBoard.draw()
     pathGrid.draw()
     
-    # 更新和绘制动画
-    animation_manager.update()
+    # 更新动画并处理已完成的攻击
+    finished = animation_manager.update()
     animation_manager.draw(screen)
+    
+    # 处理已完成的子弹动画对应的攻击
+    completed_attacks = []
+    for i, attack_info in enumerate(pending_attacks):
+        target_board, row, col, damage, message, is_player = attack_info
+        piece = target_board.grid[row][col]
+        if piece:
+            # 遍历所有动画，检查是否有对应该攻击的动画已经完成
+            all_animations_done = True
+            for anim in animation_manager.animations:
+                # 如果还有未完成的动画，跳过处理
+                if not anim.is_completed():
+                    all_animations_done = False
+                    break
+            
+            # 如果所有动画都已完成，应用伤害
+            if all_animations_done:
+                # 应用伤害
+                piece.take_damage(damage)
+                
+                # 检查棋子是否死亡
+                if piece.get_lifepoint() <= 0:
+                    # 移除棋子
+                    target_board.remove_piece(row, col)
+                    death_message = f"{piece.get_job()} 被击败"
+                    print(death_message)
+                    
+                    # 添加到消息板
+                    if is_player:
+                        messageBoard.add_message(f"你击败了 {piece.get_job()}！")
+                    else:
+                        messageBoard.add_message(f"{piece.get_job()} 被击败了！")
+                
+                # 标记此攻击已处理
+                completed_attacks.append(i)
+    
+    # 从待处理列表中移除已完成的攻击（从后向前删除，避免索引问题）
+    for i in sorted(completed_attacks, reverse=True):
+        if i < len(pending_attacks):
+            pending_attacks.pop(i)
     
     # 绘制当前拖拽的棋子（如果有）
     if dragged_piece:
