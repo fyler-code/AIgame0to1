@@ -91,7 +91,7 @@ class MessageBoard:
         # 放置在棋盘左侧一个格子的距离
         self.position = (
             chessboard_x - self.width - chessboard.grid_size,
-            chessboard_y  # 与棋盘顶部对齐
+            chessboard_y-20  # 与棋盘顶部对齐
         )
     
     def add_message(self, message):

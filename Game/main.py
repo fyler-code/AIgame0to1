@@ -30,6 +30,64 @@ pygame.display.set_caption("Card Game")
 # 定义颜色
 WHITE = (255, 255, 255)
 
+# 加载背景图片
+try:
+    background_path = os.path.join(project_root, "assets", "images", "背景.jpg")
+    background_image = pygame.image.load(background_path)
+    
+    # 计算背景图片的尺寸，只占据屏幕上方2/3
+    bg_width = screen_size[0]
+    bg_height = int(screen_size[1] * 2/3)  # 屏幕高度的2/3
+    
+    # 为了能够向上移动背景，需要加载更大高度的图片
+    # 调整背景图片大小，高度增加50像素，以便向上移动
+    background_image = pygame.transform.scale(background_image, (bg_width, bg_height + 50))
+    
+    # 创建半透明遮罩，使游戏元素更加突出
+    overlay = pygame.Surface((bg_width, bg_height + 50), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 100))  # 黑色半透明遮罩，alpha=100
+    
+    # 将遮罩应用到背景上
+    background_with_overlay = background_image.copy()
+    background_with_overlay.blit(overlay, (0, 0))
+    
+    print(f"成功加载背景图片: {background_path}")
+except Exception as e:
+    print(f"无法加载背景图片: {e}")
+    background_with_overlay = None  # 如果加载失败，设置为None
+    background_image = None
+
+# 设置下方1/3区域的背景颜色
+BOTTOM_BG_COLOR = (40, 40, 60)  # 深蓝灰色
+GRADIENT_HEIGHT = 30  # 渐变过渡区域的高度
+
+# 尝试加载中文字体
+try:
+    # 尝试常见的中文字体
+    chinese_fonts = [
+        "simhei.ttf",   # 黑体
+        "simsun.ttc",    # 宋体
+        "msyh.ttc",      # 微软雅黑
+        "simkai.ttf"     # 楷体
+    ]
+    
+    title_font = None
+    for font_name in chinese_fonts:
+        font_path = os.path.join("C:\\Windows\\Fonts", font_name)
+        if os.path.exists(font_path):
+            title_font = pygame.font.Font(font_path, int(60 * scale_factor))
+            print(f"使用中文字体: {font_name}")
+            break
+    
+    # 如果找不到中文字体，使用默认字体
+    if title_font is None:
+        title_font = pygame.font.Font(None, int(60 * scale_factor))
+        print("使用默认字体，中文可能显示不正确")
+        
+except Exception as e:
+    print(f"加载字体出错: {e}")
+    title_font = pygame.font.Font(None, int(60 * scale_factor))
+
 # 计算棋盘横向居中位置
 center_x = int((screen_size[0] - int(300 * scale_factor)) //4)
 
@@ -617,7 +675,64 @@ while running:
                     dragged_piece = None
 
     # 填充背景色
-    screen.fill(WHITE)
+    if background_with_overlay:
+        # 先填充整个屏幕为底部背景色
+        screen.fill(BOTTOM_BG_COLOR)
+        
+        # 绘制背景图片在上方2/3区域，向上偏移50像素
+        screen.blit(background_with_overlay, (0, -50))
+        
+        # 创建上下部分之间的渐变过渡效果
+        gradient_start_y = bg_height - GRADIENT_HEIGHT
+        for i in range(GRADIENT_HEIGHT):
+            # 计算当前渐变线的颜色
+            ratio = i / GRADIENT_HEIGHT
+            r = int(BOTTOM_BG_COLOR[0] * ratio + (1-ratio) * 0)
+            g = int(BOTTOM_BG_COLOR[1] * ratio + (1-ratio) * 0)
+            b = int(BOTTOM_BG_COLOR[2] * ratio + (1-ratio) * 0)
+            
+            # 创建半透明线条
+            alpha = int(150 * (1 - ratio))  # 越往下越不透明
+            line_color = (r, g, b, alpha)
+            line_surface = pygame.Surface((bg_width, 1), pygame.SRCALPHA)
+            line_surface.fill(line_color)
+            
+            # 绘制渐变线
+            screen.blit(line_surface, (0, gradient_start_y + i))
+    else:
+        screen.fill(WHITE)  # 如果没有背景图片，使用白色背景
+
+    # 绘制游戏标题
+    title_text = title_font.render("卡牌战棋", True, (255, 215, 0))  # 金色标题
+    title_shadow = title_font.render("卡牌战棋", True, (50, 50, 50))  # 深灰色阴影
+
+    # 添加阴影效果
+    shadow_offset = int(3 * scale_factor)
+    shadow_rect = title_shadow.get_rect(center=(screen_size[0]//2 + shadow_offset, 40 + shadow_offset))
+    screen.blit(title_shadow, shadow_rect)
+
+    # 绘制主标题
+    title_rect = title_text.get_rect(center=(screen_size[0]//2, 40))
+    screen.blit(title_text, title_rect)
+
+    # 绘制标题下的装饰线
+    line_width = int(400 * scale_factor)
+    line_height = int(2 * scale_factor)
+    line_y = title_rect.bottom + int(10 * scale_factor)
+
+    # 绘制渐变装饰线
+    for i in range(line_height):
+        alpha = 255 - int(i * (255 / line_height))
+        line_color = (255, 215, 0, alpha)  # 金色带透明度
+        line_surf = pygame.Surface((line_width, 1), pygame.SRCALPHA)
+        line_surf.fill(line_color)
+        screen.blit(line_surf, (screen_size[0]//2 - line_width//2, line_y + i))
+
+    # 绘制版本信息
+    version_font = pygame.font.Font(None, int(20 * scale_factor))
+    version_text = version_font.render("Version 1.0", True, (200, 200, 200))
+    version_rect = version_text.get_rect(bottomright=(screen_size[0] - int(10 * scale_factor), screen_size[1] - int(10 * scale_factor)))
+    screen.blit(version_text, version_rect)
 
     # 绘制两个棋盘、背包、奖励盒子和消息板
     myChessboard.draw()
