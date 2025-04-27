@@ -58,7 +58,7 @@ except Exception as e:
     background_image = None
 
 # 设置下方1/3区域的背景颜色
-BOTTOM_BG_COLOR = (40, 40, 60)  # 深蓝灰色
+BOTTOM_BG_COLOR = (200, 200, 200)  # 深蓝灰色
 GRADIENT_HEIGHT = 30  # 渐变过渡区域的高度
 
 # 尝试加载中文字体
@@ -202,15 +202,15 @@ for i in range(1, 22):
     try:
         # 修改路径，加入"遥感图片"文件夹
         img_path = os.path.join(project_root, "assets", "images", "摇杆图片", f"{i}.png")
-        img = pygame.image.load(img_path)
+        img = pygame.image.load(img_path).convert_alpha()  # 使用convert_alpha支持透明度
         # 调整图片大小，根据需要调整
         img = pygame.transform.scale(img, (int(400 * scale_factor), int(400 * scale_factor)))
         button_images.append(img)
     except Exception as e:
         print(f"无法加载图片: {i}.png - 错误: {e}")
-        # 创建一个默认图片（红色方块）
-        default_img = pygame.Surface((int(100 * scale_factor), int(100 * scale_factor)))
-        default_img.fill((255, 0, 0))
+        # 创建一个默认图片（浅灰色方块）
+        default_img = pygame.Surface((int(100 * scale_factor), int(100 * scale_factor)), pygame.SRCALPHA)
+        default_img.fill((200, 200, 200, 180))  # 浅灰色半透明
         button_images.append(default_img)
 
 # 按钮动画状态

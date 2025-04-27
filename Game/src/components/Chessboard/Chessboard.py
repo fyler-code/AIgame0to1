@@ -143,7 +143,7 @@ class Chessboard:
                 self.show_menu = False
                 
         return False
-
+    
     def place_piece(self, piece, row, col):
         """在指定位置放置棋子"""
         if 0 <= row < 3 and 0 <= col < 3 and self.grid[row][col] is None:
@@ -176,7 +176,7 @@ class Chessboard:
             row = int((y - board_y) // self.grid_size)
             col = int((x - board_x) // self.grid_size)
             return row, col
-        return None
+        return None 
 
     def setChess(self, chess, position):
         """
@@ -202,7 +202,7 @@ class Chessboard:
         col = position % 3
         
         # 调用place_piece方法放置棋子
-        return self.place_piece(chess, row, col)
+        return self.place_piece(chess, row, col) 
 
     def start_drag(self, mouse_pos):
         """开始拖动棋子"""
