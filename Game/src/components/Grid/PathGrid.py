@@ -4,11 +4,15 @@ import os
 class PathGrid:
     """玩家走格子的网格类，不同列有不同数量的格子"""
     
-    def __init__(self, screen, chessboard=None):
+    def __init__(self, screen, chessboard=None, opponent_chessboard=None):
         self.screen = screen
         # 获取屏幕尺寸
         self.screen_width, self.screen_height = screen.get_size()
         
+        if opponent_chessboard:
+            self.opponent_chessboard = opponent_chessboard
+        else:
+            self.opponent_chessboard = None
         # 计算缩放比例（基于参考分辨率1920*1200）
         self.scale_factor = min(self.screen_width / 1920, self.screen_height / 1200)
         
@@ -208,3 +212,9 @@ class PathGrid:
             x, y = pos
             return (x + self.grid_size // 2, y + self.grid_size // 2)
         return None 
+    
+    def isOppenontsChessboardCleared(self):
+        """判断对手棋盘是否被清空"""
+        if self.opponent_chessboard:
+            return self.opponent_chessboard.is_cleared()
+        return False

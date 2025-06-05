@@ -295,3 +295,11 @@ class Chessboard:
         y = board_y + row * grid_size + grid_size // 2
         
         return (x, y)
+        
+    def is_cleared(self):
+        """判断棋盘是否被清空（没有棋子）"""
+        for row in range(3):
+            for col in range(3):
+                if self.grid[row][col] is not None:
+                    return False
+        return True

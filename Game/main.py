@@ -111,7 +111,7 @@ messageBoard.add_message("游戏开始！准备战斗！")
 messageBoard.update_coins(100)  # 初始金币
 
 # 初始化路径网格
-pathGrid = PathGrid(screen, myChessboard)
+pathGrid = PathGrid(screen, myChessboard, opponentChessboard)
 # 修改路径网格位置，放置在右上角
 pathGrid.position = (
     screen_size[0] - pathGrid.width - int(20 * scale_factor),  # 距离右边缘20个像素
@@ -777,6 +777,12 @@ while running:
                         messageBoard.add_message(f"你击败了 {piece.get_job()}！")
                     else:
                         messageBoard.add_message(f"{piece.get_job()} 被击败了！")
+                    
+                    # 检查棋盘是否清空
+                    if is_player and opponentChessboard.is_cleared():
+                        messageBoard.add_message("恭喜！你清空了敌方棋盘！")
+                    elif not is_player and myChessboard.is_cleared():
+                        messageBoard.add_message("警告！你的棋盘被清空了！")
                 
                 # 标记此攻击已处理
                 completed_attacks.append(i)
