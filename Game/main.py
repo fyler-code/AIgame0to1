@@ -266,6 +266,9 @@ active_animations = []  # 用于存储活跃的子弹动画
 currently_dragging = None  # 可以是 "my_chessboard", "opponent_chessboard", "backpack" 或 None
 dragged_piece = None
 
+# 新增：记录敌方棋盘是否已清空
+enemy_board_cleared = False
+
 while running:
     # 事件处理
     for event in pygame.event.get():
@@ -273,54 +276,60 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # 左键点击
-                # 检查是否点击了路径网格
-                cell = pathGrid.get_cell_at_position(event.pos)
-                if cell:
-                    col, row = cell['position'][1], cell['position'][0]  # position 是 (row, col)
-                    
-                    # 检查是否可以移动到这个格子
-                    can_move = False
-                    
-                    # 第一次移动，可以从起点开始
-                    if player['position'] is None and col == 0 and row == 0:
-                        can_move = True
-                    # 后续移动规则：只能移动到下一列的临近两格
-                    elif player['position']:
-                        current_col, current_row = player['position']
+                # 新增：只有敌方棋盘清空后才能与PathGrid互动
+                if enemy_board_cleared:
+                    # 检查是否点击了路径网格
+                    cell = pathGrid.get_cell_at_position(event.pos)
+                    if cell:
+                        col, row = cell['position'][1], cell['position'][0]  # position 是 (row, col)
                         
-                        # 检查是否是相邻列
-                        if col == current_col + 1:
-                            # 检查是否是临近两格（当前行、上一行或下一行）
-                            if abs(row - current_row) <= 1:
-                                can_move = True
-                    
-                    if can_move:
-                        # 如果当前有位置，清除旧位置
-                        if player['position']:
-                            old_col, old_row = player['position']
-                            pathGrid.clear_cell(old_col, old_row)
+                        # 检查是否可以移动到这个格子
+                        can_move = False
                         
-                        # 高亮可移动的下一步位置
-                        pathGrid.clear_all_highlights()
-                        next_col = col + 1
-                        if next_col < pathGrid.num_cols:
-                            # 获取下一列的行数
-                            next_col_rows = pathGrid.cols_config[next_col]
-                            # 高亮当前行和相邻行（如果存在）
-                            for r in range(max(0, row-1), min(next_col_rows, row+2)):
-                                pathGrid.highlight_cell(next_col, r, True)
+                        # 第一次移动，可以从起点开始
+                        if player['position'] is None and col == 0 and row == 0:
+                            can_move = True
+                        # 后续移动规则：只能移动到下一列的临近两格
+                        elif player['position']:
+                            current_col, current_row = player['position']
+                            
+                            # 检查是否是相邻列
+                            if col == current_col + 1:
+                                # 检查是否是临近两格（当前行、上一行或下一行）
+                                if abs(row - current_row) <= 1:
+                                    can_move = True
                         
-                        # 更新玩家位置
-                        player['position'] = (col, row)
-                        pathGrid.occupy_cell(col, row, player)
-                        
-                        # 添加移动消息
-                        messageBoard.add_message(f"移动到位置: 列{col+1}行{row+1}")
-                        
-                        # 如果到达终点（最后一列）
-                        if col == pathGrid.num_cols - 1:
-                            messageBoard.add_message("到达终点！")
-                            # 这里可以添加到达终点的奖励逻辑
+                        if can_move:
+                            # 如果当前有位置，清除旧位置
+                            if player['position']:
+                                old_col, old_row = player['position']
+                                pathGrid.clear_cell(old_col, old_row)
+                            
+                            # 高亮可移动的下一步位置
+                            pathGrid.clear_all_highlights()
+                            next_col = col + 1
+                            if next_col < pathGrid.num_cols:
+                                # 获取下一列的行数
+                                next_col_rows = pathGrid.cols_config[next_col]
+                                # 高亮当前行和相邻行（如果存在）
+                                for r in range(max(0, row-1), min(next_col_rows, row+2)):
+                                    pathGrid.highlight_cell(next_col, r, True)
+                            
+                            # 更新玩家位置
+                            player['position'] = (col, row)
+                            pathGrid.occupy_cell(col, row, player)
+                            
+                            # 添加移动消息
+                            messageBoard.add_message(f"移动到位置: 列{col+1}行{row+1}")
+                            
+                            # 如果到达终点（最后一列）
+                            if col == pathGrid.num_cols - 1:
+                                messageBoard.add_message("到达终点！")
+                                # 这里可以添加到达终点的奖励逻辑
+                else:
+                    # 敌方棋盘未清空时，提示用户
+                    if pathGrid.get_cell_at_position(event.pos):
+                        messageBoard.add_message("请先清空敌方棋盘才能移动")
                 
                 # 处理菜单点击
                 if myChessboard.show_menu:
@@ -674,6 +683,17 @@ while running:
                     currently_dragging = None
                     dragged_piece = None
 
+    # 新增：检查敌方棋盘是否已清空
+    if not enemy_board_cleared and opponentChessboard.is_cleared():
+        enemy_board_cleared = True
+        messageBoard.add_message("敌方棋盘已清空！现在可以移动到路径网格上")
+        # 高亮显示起始位置
+        pathGrid.highlight_cell(0, 0, True)
+        # 高亮显示可移动的下一步位置
+        if pathGrid.cols_config[1] >= 1:
+            for r in range(0, min(2, pathGrid.cols_config[1])):
+                pathGrid.highlight_cell(1, r, True)
+
     # 填充背景色
     if background_with_overlay:
         # 先填充整个屏幕为底部背景色
@@ -853,4 +873,4 @@ while running:
 
 # 清理并退出
 pygame.quit()
-sys.exit() 
+sys.exit()     
