@@ -1,4 +1,5 @@
 import pygame
+import random
 from src.components.Chess.ChessPiece import ChessPiece
 
 class Chessboard:
@@ -303,3 +304,29 @@ class Chessboard:
                 if self.grid[row][col] is not None:
                     return False
         return True
+
+    def generate_random_enemies(self, min_count=1, max_count=6):
+        # 清空当前棋盘
+        self.grid = [[None for _ in range(3)] for _ in range(3)]
+        # 生成随机数量（1-3个）
+        enemy_count = random.randint(min_count, max_count)
+        # 随机选择位置
+        positions = [(row, col) for row in range(3) for col in range(3)]
+        random.shuffle(positions)
+        selected_positions = positions[:enemy_count]
+        # 生成随机属性的棋子（示例属性，可根据需求调整）
+        for (row, col) in selected_positions:
+            attack = random.randint(3, 8)
+            lifepoint = random.randint(5, 12)
+            job = random.choice(['战士', '法师', '弓箭手'])
+            color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+            enemy_piece = ChessPiece(attack=attack, lifepoint=lifepoint, job=job, color=color)
+            self.place_piece(enemy_piece, row, col)
+
+    def reset_all_pieces_attack_status(self):
+        """重置当前棋盘所有棋子的攻击状态"""
+        for row in range(3):
+            for col in range(3):
+                piece = self.grid[row][col]
+                if piece:
+                    piece.reset_attack_status()

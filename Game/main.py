@@ -282,7 +282,7 @@ while running:
                     cell = pathGrid.get_cell_at_position(event.pos)
                     if cell:
                         col, row = cell['position'][1], cell['position'][0]  # position 是 (row, col)
-                        
+                        can_move = pathGrid.handle_player_move(col, row, player['position'])
                         # 检查是否可以移动到这个格子
                         can_move = False
                         
@@ -318,6 +318,10 @@ while running:
                             # 更新玩家位置
                             player['position'] = (col, row)
                             pathGrid.occupy_cell(col, row, player)
+                            enemy_board_cleared = False  # 重置清空标记
+                            messageBoard.next_turn()
+                            messageBoard.update_coins(10)  # 每回合增加10金币
+                            myChessboard.reset_all_pieces_attack_status()
                             
                             # 添加移动消息
                             messageBoard.add_message(f"移动到位置: 列{col+1}行{row+1}")
@@ -474,17 +478,10 @@ while running:
                                     enemy_piece.mark_as_attacked()
                     
                     # 重置所有棋子的攻击状态
-                    for row in range(3):
-                        for col in range(3):
-                            # 重置我方棋子的攻击状态
-                            piece = myChessboard.grid[row][col]
-                            if piece:
-                                piece.reset_attack_status()
-                            
-                            # 重置敌方棋子的攻击状态
-                            enemy_piece = opponentChessboard.grid[row][col]
-                            if enemy_piece:
-                                enemy_piece.reset_attack_status()
+                    myChessboard.reset_all_pieces_attack_status()
+                    
+                    # 同理，敌方棋子的重置也可简化为
+                    opponentChessboard.reset_all_pieces_attack_status()
             
             elif event.button == 3:  # 右键点击
                 # 检查玩家棋盘上的点击
@@ -873,4 +870,4 @@ while running:
 
 # 清理并退出
 pygame.quit()
-sys.exit()     
+sys.exit()

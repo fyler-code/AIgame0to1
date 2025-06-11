@@ -169,8 +169,12 @@ class PathGrid:
     
     def occupy_cell(self, col, row, player):
         """玩家占据指定格子"""
-        return self.set_cell_state(col, row, occupied=True, player=player, 
-                                  highlight=self.grid[col][row]['highlight'])
+        success = self.set_cell_state(col, row, occupied=True, player=player,
+                                      highlight=self.grid[col][row]['highlight'])
+        # 成功占据时生成随机敌方棋子
+        if success and self.opponent_chessboard:
+            self.opponent_chessboard.generate_random_enemies()
+        return success
     
     def clear_cell(self, col, row):
         """清除指定格子的占用状态"""
@@ -218,3 +222,43 @@ class PathGrid:
         if self.opponent_chessboard:
             return self.opponent_chessboard.is_cleared()
         return False
+
+    def handle_player_move(self, target_col, target_row, player_position):
+        """
+        处理玩家移动逻辑，返回是否可移动
+        :param target_col: 目标列
+        :param target_row: 目标行
+        :param player_position: 玩家当前位置（None表示未移动过）
+        :return: 是否可移动
+        """
+        # 检查是否可以移动到这个格子
+        can_move = False
+
+        # 第一次移动，可以从起点开始（列0，行0）
+        if player_position is None and target_col == 0 and target_row == 0:
+            can_move = True
+        # 后续移动规则：只能移动到下一列的临近两格
+        elif player_position:
+            current_col, current_row = player_position
+            # 检查是否是相邻列且行差≤1
+            if target_col == current_col + 1 and abs(target_row - current_row) <= 1:
+                can_move = True
+
+        if can_move:
+            # 清除旧位置（如果有）
+            if player_position:
+                old_col, old_row = player_position
+                self.clear_cell(old_col, old_row)
+
+            # 高亮下一步位置
+            self.clear_all_highlights()
+            next_col = target_col + 1
+            if next_col < self.num_cols:
+                next_col_rows = self.cols_config[next_col]
+                # 高亮当前行和相邻行（范围0到next_col_rows-1）
+                start_row = max(0, target_row - 1)
+                end_row = min(next_col_rows, target_row + 2)
+                for r in range(start_row, end_row):
+                    self.highlight_cell(next_col, r, True)
+
+        return can_move
