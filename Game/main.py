@@ -322,6 +322,9 @@ while running:
                             messageBoard.next_turn()
                             messageBoard.update_coins(10)  # 每回合增加10金币
                             myChessboard.reset_all_pieces_attack_status()
+
+                            # 新增：刷新奖励盒
+                            rewardBox.refresh_rewards()
                             
                             # 添加移动消息
                             messageBoard.add_message(f"移动到位置: 列{col+1}行{row+1}")

@@ -207,4 +207,32 @@ class RewardBox:
             for col in range(self.cols):
                 if self.grid[row][col] is not None:
                     count += 1
-        return count 
+        return count
+
+    def refresh_rewards(self):
+        """清空当前奖励并生成新的随机奖励"""
+        # 清空现有奖励
+        self.grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+
+        # 生成随机奖励（示例：1-3个物品/棋子）
+        import random
+        reward_count = random.randint(1, 3)
+        for _ in range(reward_count):
+            # 随机选择生成物品或棋子
+            if random.random() < 0.5:
+                # 生成随机属性的物品
+                new_item = Item(
+                    attack=random.randint(5, 25),
+                    lifepoint=random.randint(10, 30),
+                    ability=f"随机属性：+{random.randint(5, 15)}攻击"
+                )
+            else:
+                # 生成随机属性的棋子
+                new_piece = ChessPiece(
+                    attack=random.randint(8, 18),
+                    lifepoint=random.randint(10, 20),
+                    job=random.choice(["战士", "法师", "弓箭手"]),
+                    is_fusion=random.random() < 0.2,
+                    color=tuple(random.randint(0, 255) for _ in range(3))
+                )
+            self.add_item(new_item if 'new_item' in locals() else new_piece)
